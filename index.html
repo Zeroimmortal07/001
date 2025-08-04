@@ -364,37 +364,72 @@
             });
         }
         
-        function setupRectangleTool(canvas) {
-            let isDrawing = false;
-            let newRectangle;
-            
-            canvas.on('mouse:down', (o) => {
-                isDrawing = true;
-                const pointer = canvas.getPointer(o.e);
-                newRectangle = new fabric.Rect({
-                    left: pointer.x,
-                    top: pointer.y,
-                    width: 0,
-                    height: 0,
-                    fill: 'rgba(59, 130, 246, 0.3)',
-                    stroke: state.brushColor,
-                    strokeWidth: 2,
-                    selectable: true
-                });
-                canvas.add(newRectangle);
+       function setupRectangleTool(canvas) {
+    let isDrawing = false;
+    let startX, startY;
+    let rect;
+    
+    canvas.on('mouse:down', (o) => {
+        isDrawing = true;
+        const pointer = canvas.getPointer(o.e);
+        startX = pointer.x;
+        startY = pointer.y;
+        
+        rect = new fabric.Rect({
+            left: startX,
+            top: startY,
+            width: 0,
+            height: 0,
+            fill: 'rgba(59, 130, 246, 0.3)',
+            stroke: state.brushColor,
+            strokeWidth: 2,
+            selectable: true
+        });
+        canvas.add(rect);
+    });
+    
+    canvas.on('mouse:move', (o) => {
+        if (!isDrawing) return;
+        
+        const pointer = canvas.getPointer(o.e);
+        const width = pointer.x - startX;
+        const height = pointer.y - startY;
+        
+        if (rect) {
+            rect.set({
+                width: width,
+                height: height
             });
-            
-            canvas.on('mouse:move', (o) => {
-                if (!isDrawing) return;
-                const pointer = canvas.getPointer(o.e);
-                if (newRectangle) {
-                    newRectangle.set({
-                        width: Math.abs(pointer.x - newRectangle.left),
-                        height: Math.abs(pointer.y - newRectangle.top)
+            canvas.renderAll();
+        }
+    });
+    
+    canvas.on('mouse:up', () => {
+        isDrawing = false;
+        if (rect) {
+            // Ensure minimum size
+            if (Math.abs(rect.width) < 5 || Math.abs(rect.height) < 5) {
+                canvas.remove(rect);
+            } else {
+                // Normalize negative dimensions
+                if (rect.width < 0) {
+                    rect.set({
+                        left: rect.left + rect.width,
+                        width: -rect.width
                     });
-                    canvas.renderAll();
                 }
-            });
+                if (rect.height < 0) {
+                    rect.set({
+                        top: rect.top + rect.height,
+                        height: -rect.height
+                    });
+                }
+                canvas.renderAll();
+                saveState(canvas);
+            }
+        }
+    });
+}
             
             canvas.on('mouse:up', () => {
                 isDrawing = false;
@@ -612,6 +647,7 @@
     </script>
 </body>
 </html>
+
 
 
 
