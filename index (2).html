@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Image Annotation Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .tool-btn.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .tool-btn:hover {
+            background-color: #2563eb;
+            color: white;
+        }
+        .tool-btn:focus {
+            outline: 2px solid #2563eb;
+        }
+        .canvas-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            position: relative;
+        }
+        .zoom-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            background-color: #f3f4f6;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .zoom-btn:hover {
+            background-color: #e5e7eb;
+        }
+        .zoom-level {
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 14px;
+            min-width: 50px;
+            justify-content: center;
+        }
+        .canvas-active {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8" role="main">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Interactive Image Annotation Platform</h1>
+            <p class="text-gray-600">Dual-canvas annotation with advanced tools and zoom controls</p>
+        </header>
+        
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6" role="toolbar" aria-label="Annotation tools">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap gap-2">
+                    <button id="brush-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Brush Tool">
+                        <i class="fas fa-pen mr-2" aria-hidden="true"></i> Brush
+                    </button>
+                    <button id="rectangle-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Rectangle Tool">
+                        <i class="fas fa-square mr-2" aria-hidden="true"></i> Rectangle
+                    </button>
+                    <button id="text-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Text Tool">
+                        <i class="fas fa-font mr-2" aria-hidden="true"></i> Text
+                    </button>
+                    <button id="eraser-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Eraser Tool">
+                        <i class="fas fa-eraser mr-2" aria-hidden="true"></i> Eraser
+                    </button>
+                </div>
+                
+                <div class="flex flex-wrap gap-3 items-center">
+                    <div class="flex items-center">
+                        <label for="color-picker" class="mr-2 text-gray-700">Color:</label>
+                        <input type="color" id="color-picker" class="w-8 h-8 cursor-pointer" value="#3b82f6" aria-label="Select Brush Color">
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <label for="brush-size" class="mr-2 text-gray-700">Size:</label>
+                        <input type="range" id="brush-size" min="1" max="50" value="5" class="w-24" aria-label="Brush Size Selector">
+                        <span id="size-value" class="ml-2 text-gray-700">5</span>
+                    </div>
+                    
+                    <button id="undo-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center" aria-label="Undo">
+                        <i class="fas fa-undo mr-2" aria-hidden="true"></i> Undo
+                    </button>
+                    
+                    <button id="redo-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center" aria-label="Redo">
+                        <i class="fas fa-redo mr-2" aria-hidden="true"></i> Redo
+                    </button>
+                    
+                    <button id="export-btn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center" aria-label="Export Image">
+                        <i class="fas fa-download mr-2" aria-hidden="true"></i> Export
+                    </button>
+                    
+                    <button id="reset-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center" aria-label="Reset Canvas">
+                        <i class="fas fa-trash mr-2" aria-hidden="true"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Canvas 1 -->
+            <div class="w-full lg:w-1/2">
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800">Canvas 1</h2>
+                        <div class="flex gap-2">
+                            <input type="file" id="file-input-1" accept="image/*" style="display: none;">
+                            <button id="upload-btn-1" class="px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600">
+                                <i class="fas fa-upload mr-2"></i> Upload Image
+                            </button>
+                            <button id="clear-image-1" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                                <i class="fas fa-times mr-2"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div class="canvas-container" id="canvas-container-1">
+                        <canvas id="canvas-1" width="800" height="500"></canvas>
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" id="zoom-out-1" aria-label="Zoom Out">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <div class="zoom-level" id="zoom-level-1">100%</div>
+                            <button class="zoom-btn" id="zoom-in-1" aria-label="Zoom In">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="zoom-btn" id="reset-zoom-1" aria-label="Reset Zoom">
+                                <i class="fas fa-compress"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Canvas 2 -->
+            <div class="w-full lg:w-1/2">
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800">Canvas 2</h2>
+                        <div class="flex gap-2">
+                            <input type="file" id="file-input-2" accept="image/*" style="display: none;">
+                            <button id="upload-btn-2" class="px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600">
+                                <i class="fas fa-upload mr-2"></i> Upload Image
+                            </button>
+                            <button id="clear-image-2" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                                <i class="fas fa-times mr-2"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div class="canvas-container" id="canvas-container-2">
+                        <canvas id="canvas-2" width="800" height="500"></canvas>
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" id="zoom-out-2" aria-label="Zoom Out">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <div class="zoom-level" id="zoom-level-2">100%</div>
+                            <button class="zoom-btn" id="zoom-in-2" aria-label="Zoom In">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="zoom-btn" id="reset-zoom-2" aria-label="Reset Zoom">
+                                <i class="fas fa-compress"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">How to Use</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="text-blue-500 text-2xl mb-2"><i class="fas fa-upload"></i></div>
+                    <h3 class="font-semibold text-gray-800">Upload Images</h3>
+                    <p class="text-gray-600">Click "Upload Image" to load your images onto the canvases</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="text-green-500 text-2xl mb-2"><i class="fas fa-pen"></i></div>
+                    <h3 class="font-semibold text-gray-800">Annotate</h3>
+                    <p class="text-gray-600">Use brush, shapes, text tools to annotate your images</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <div class="text-purple-500 text-2xl mb-2"><i class="fas fa-search-plus"></i></div>
+                    <h3 class="font-semibold text-gray-800">Zoom</h3>
+                    <p class="text-gray-600">Use zoom controls to inspect details in your images</p>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <div class="text-yellow-500 text-2xl mb-2"><i class="fas fa-download"></i></div>
+                    <h3 class="font-semibold text-gray-800">Export</h3>
+                    <p class="text-gray-600">Export your annotated images when finished</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const state = {
+            activeTool: 'brush',
+            brushColor: '#3b82f6',
+            brushSize: 5,
+            fontFamily: 'Arial',
+            fontSize: 16,
+            zoom: {
+                canvas1: 1.0,
+                canvas2: 1.0
+            }
+        };
+        let canvas1, canvas2;
+        let activeCanvas = null;
+        const history = {
+            canvas1: {
+                undo: [],
+                redo: []
+            },
+            canvas2: {
+                undo: [],
+                redo: []
+            }
+        };
+        
+        function initCanvases() {
+            canvas1 = new fabric.Canvas('canvas-1', {
+                backgroundColor: '#f8fafc',
+                selection: true
+            });
+            
+            canvas2 = new fabric.Canvas('canvas-2', {
+                backgroundColor: '#f8fafc',
+                selection: true
+            });
+            
+            activeCanvas = canvas1;
+            setActiveCanvas(canvas1);
+            
+            saveState(canvas1);
+            saveState(canvas2);
+            
+            canvas1.on('object:added', () => saveState(canvas1));
+            canvas1.on('object:modified', () => saveState(canvas1));
+            canvas1.on('object:removed', () => saveState(canvas1));
+            
+            canvas2.on('object:added', () => saveState(canvas2));
+            canvas2.on('object:modified', () => saveState(canvas2));
+            canvas2.on('object:removed', () => saveState(canvas2));
+            
+            // Set up canvas click to activate
+            canvas1.on('mouse:down', () => setActiveCanvas(canvas1));
+            canvas2.on('mouse:down', () => setActiveCanvas(canvas2));
+        }
+        
+        function setActiveCanvas(canvas) {
+            activeCanvas = canvas;
+            // Update UI to show which canvas is active
+            document.querySelectorAll('.canvas-container').forEach(container => {
+                container.classList.remove('canvas-active');
+            });
+            
+            if (canvas === canvas1) {
+                document.getElementById('canvas-container-1').classList.add('canvas-active');
+            } else {
+                document.getElementById('canvas-container-2').classList.add('canvas-active');
+            }
+        }
+        
+        function saveState(canvas) {
+            const canvasData = canvas.toJSON();
+            const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
+            
+            canvasHistory.undo.push(canvasData);
+            
+            if (canvasHistory.undo.length > 50) {
+                canvasHistory.undo.shift();
+            }
+            
+            canvasHistory.redo = [];
+        }
+        
+        function undo(canvas) {
+            const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
+            
+            if (canvasHistory.undo.length > 1) {
+                const currentState = canvas.toJSON();
+                canvasHistory.redo.push(currentState);
+                
+                const previousState = canvasHistory.undo.pop();
+                canvas.loadFromJSON(previousState, () => {
+                    canvas.renderAll();
+                });
+            }
+        }
+        
+        function redo(canvas) {
+            const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
+            
+            if (canvasHistory.redo.length > 0) {
+                const currentState = canvas.toJSON();
+                canvasHistory.undo.push(currentState);
+                
+                const nextState = canvasHistory.redo.pop();
+                canvas.loadFromJSON(nextState, () => {
+                    canvas.renderAll();
+                });
+            }
+        }
+        
+        function configureTool(tool) {
+            state.activeTool = tool;
+            
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(`${tool}-tool`).classList.add('active');
+            
+            [canvas1, canvas2].forEach(canvas => {
+                canvas.isDrawingMode = false;
+                canvas.off('mouse:down');
+                canvas.off('mouse:move');
+                canvas.off('mouse:up');
+                
+                switch(tool) {
+                    case 'brush':
+                        canvas.isDrawingMode = true;
+                        const brush = new fabric.PencilBrush(canvas);
+                        brush.color = state.brushColor;
+                        brush.width = state.brushSize;
+                        canvas.freeDrawingBrush = brush;
+                        break;
+                        
+                    case 'rectangle':
+                        setupRectangleTool(canvas);
+                        break;
+                        
+                    case 'text':
+                        setupTextTool(canvas);
+                        break;
+                        
+                    case 'eraser':
+                        canvas.isDrawingMode = true;
+                        canvas.freeDrawingBrush = new fabric.EraserBrush(canvas);
+                        canvas.freeDrawingBrush.width = state.brushSize;
+                        break;
+                }
+            });
+        }
+        
+        function setupRectangleTool(canvas) {
+            let isDrawing = false;
+            let newRectangle;
+            
+            canvas.on('mouse:down', (o) => {
+                isDrawing = true;
+                const pointer = canvas.getPointer(o.e);
+                newRectangle = new fabric.Rect({
+                    left: pointer.x,
+                    top: pointer.y,
+                    width: 0,
+                    height: 0,
+                    fill: 'rgba(59, 130, 246, 0.3)',
+                    stroke: state.brushColor,
+                    strokeWidth: 2,
+                    selectable: true
+                });
+                canvas.add(newRectangle);
+            });
+            
+            canvas.on('mouse:move', (o) => {
+                if (!isDrawing) return;
+                const pointer = canvas.getPointer(o.e);
+                if (newRectangle) {
+                    newRectangle.set({
+                        width: Math.abs(pointer.x - newRectangle.left),
+                        height: Math.abs(pointer.y - newRectangle.top)
+                    });
+                    canvas.renderAll();
+                }
+            });
+            
+            canvas.on('mouse:up', () => {
+                isDrawing = false;
+            });
+        }
+        
+        function setupTextTool(canvas) {
+            canvas.on('mouse:down', (o) => {
+                const pointer = canvas.getPointer(o.e);
+                const textbox = new fabric.Textbox('Annotation text', {
+                    left: pointer.x,
+                    top: pointer.y,
+                    width: 200,
+                    fontSize: state.fontSize,
+                    fill: state.brushColor,
+                    editable: true,
+                    hasControls: true
+                });
+                canvas.add(textbox);
+                textbox.enterEditing();
+                canvas.setActiveObject(textbox);
+            });
+        }
+        
+        function loadImageToCanvas(file, canvas) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // Create a new Image object
+                const img = new Image();
+                img.onload = function() {
+                    // Calculate scaling to fit canvas while maintaining aspect ratio
+                    const canvasWidth = canvas.width;
+                    const canvasHeight = canvas.height;
+                    const imgWidth = img.width;
+                    const imgHeight = img.height;
+                    
+                    const scale = Math.min(
+                        canvasWidth / imgWidth,
+                        canvasHeight / imgHeight
+                    );
+                    
+                    // Create a fabric.Image from the loaded image
+                    const fabricImage = new fabric.Image(img, {
+                        left: (canvasWidth - imgWidth * scale) / 2,
+                        top: (canvasHeight - imgHeight * scale) / 2,
+                        scaleX: scale,
+                        scaleY: scale,
+                        selectable: false
+                    });
+                    
+                    // Set as background image
+                    canvas.setBackgroundImage(fabricImage, canvas.renderAll.bind(canvas));
+                    
+                    // Reset zoom when new image is loaded
+                    const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+                    state.zoom[canvasId] = 1.0;
+                    updateZoomDisplay(canvas);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function clearCanvasImage(canvas) {
+            canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
+            // Reset zoom when image is cleared
+            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+            state.zoom[canvasId] = 1.0;
+            updateZoomDisplay(canvas);
+        }
+        
+        function exportCanvas(canvas) {
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 0.8
+            });
+            
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = 'annotated-image.png';
+            link.click();
+        }
+        
+        function resetCanvas(canvas) {
+            canvas.clear();
+            canvas.backgroundColor = '#f8fafc';
+            canvas.renderAll();
+            saveState(canvas);
+            
+            // Reset zoom when canvas is reset
+            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+            state.zoom[canvasId] = 1.0;
+            updateZoomDisplay(canvas);
+        }
+        
+        // Zoom functions
+        function zoomIn(canvas) {
+            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+            state.zoom[canvasId] *= 1.2;
+            canvas.setZoom(state.zoom[canvasId]);
+            canvas.renderAll();
+            updateZoomDisplay(canvas);
+        }
+        
+        function zoomOut(canvas) {
+            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+            state.zoom[canvasId] /= 1.2;
+            canvas.setZoom(state.zoom[canvasId]);
+            canvas.renderAll();
+            updateZoomDisplay(canvas);
+        }
+        
+        function resetZoom(canvas) {
+            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+            state.zoom[canvasId] = 1.0;
+            canvas.setZoom(1.0);
+            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+            canvas.renderAll();
+            updateZoomDisplay(canvas);
+        }
+        
+        function updateZoomDisplay(canvas) {
+            const canvasId = canvas === canvas1 ? '1' : '2';
+            const zoomLevel = Math.round(state.zoom[`canvas${canvasId}`] * 100);
+            document.getElementById(`zoom-level-${canvasId}`).textContent = `${zoomLevel}%`;
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initCanvases();
+            
+            document.getElementById('brush-tool').addEventListener('click', () => configureTool('brush'));
+            document.getElementById('rectangle-tool').addEventListener('click', () => configureTool('rectangle'));
+            document.getElementById('text-tool').addEventListener('click', () => configureTool('text'));
+            document.getElementById('eraser-tool').addEventListener('click', () => configureTool('eraser'));
+            
+            document.getElementById('color-picker').addEventListener('input', (e) => {
+                state.brushColor = e.target.value;
+                if (state.activeTool === 'brush') {
+                    configureTool('brush');
+                }
+            });
+            
+            const brushSize = document.getElementById('brush-size');
+            const sizeValue = document.getElementById('size-value');
+            
+            brushSize.addEventListener('input', (e) => {
+                state.brushSize = parseInt(e.target.value);
+                sizeValue.textContent = state.brushSize;
+                if (state.activeTool === 'brush' || state.activeTool === 'eraser') {
+                    configureTool(state.activeTool);
+                }
+            });
+            
+            document.getElementById('undo-btn').addEventListener('click', () => {
+                undo(activeCanvas);
+            });
+            
+            document.getElementById('redo-btn').addEventListener('click', () => {
+                redo(activeCanvas);
+            });
+            
+            document.getElementById('export-btn').addEventListener('click', () => {
+                exportCanvas(activeCanvas);
+            });
+            
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                resetCanvas(activeCanvas);
+            });
+            
+            // Image upload handlers for Canvas 1
+            document.getElementById('upload-btn-1').addEventListener('click', () => {
+                document.getElementById('file-input-1').click();
+            });
+            
+            document.getElementById('file-input-1').addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    loadImageToCanvas(e.target.files[0], canvas1);
+                }
+            });
+            
+            // Image upload handlers for Canvas 2
+            document.getElementById('upload-btn-2').addEventListener('click', () => {
+                document.getElementById('file-input-2').click();
+            });
+            
+            document.getElementById('file-input-2').addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    loadImageToCanvas(e.target.files[0], canvas2);
+                }
+            });
+            
+            // Clear image handlers
+            document.getElementById('clear-image-1').addEventListener('click', () => {
+                clearCanvasImage(canvas1);
+            });
+            
+            document.getElementById('clear-image-2').addEventListener('click', () => {
+                clearCanvasImage(canvas2);
+            });
+            
+            // Zoom controls for canvas 1
+            document.getElementById('zoom-in-1').addEventListener('click', () => zoomIn(canvas1));
+            document.getElementById('zoom-out-1').addEventListener('click', () => zoomOut(canvas1));
+            document.getElementById('reset-zoom-1').addEventListener('click', () => resetZoom(canvas1));
+            
+            // Zoom controls for canvas 2
+            document.getElementById('zoom-in-2').addEventListener('click', () => zoomIn(canvas2));
+            document.getElementById('zoom-out-2').addEventListener('click', () => zoomOut(canvas2));
+            document.getElementById('reset-zoom-2').addEventListener('click', () => resetZoom(canvas2));
+            
+            configureTool('brush');
+        });
+    </script>
+</body>
+</html>
