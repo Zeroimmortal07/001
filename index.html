@@ -7,6 +7,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
         .tool-btn.active {
             background-color: #3b82f6;
@@ -61,13 +63,55 @@
         .canvas-active {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
         }
+        .text-extraction-panel {
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .text-result {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            min-height: 100px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+        .similarity-meter {
+            height: 24px;
+            background-color: #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .similarity-fill {
+            height: 100%;
+            background-color: #10b981;
+            transition: width 0.5s ease;
+        }
+        .extract-btn {
+            background-color: #8b5cf6;
+            color: white;
+        }
+        .extract-btn:hover {
+            background-color: #7c3aed;
+        }
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: #8b5cf6;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8" role="main">
         <header class="mb-8 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Interactive Image Annotation Platform</h1>
-            <p class="text-gray-600">Dual-canvas annotation with advanced tools and zoom controls</p>
+            <p class="text-gray-600">Dual-canvas annotation with text extraction and comparison</p>
         </header>
         
         <div class="bg-white rounded-lg shadow-md p-4 mb-6" role="toolbar" aria-label="Annotation tools">
@@ -84,6 +128,9 @@
                     </button>
                     <button id="highlighter-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Highlighter Tool">
                         <i class="fas fa-highlighter mr-2" aria-hidden="true"></i> Highlighter
+                    </button>
+                    <button id="extract-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Text Extraction Tool">
+                        <i class="fas fa-crop-alt mr-2" aria-hidden="true"></i> Extract Text
                     </button>
                 </div>
                 
@@ -148,6 +195,20 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <!-- Text Extraction Panel for Canvas 1 -->
+                    <div class="text-extraction-panel mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-lg font-medium text-gray-800">Extracted Text</h3>
+                            <button id="extract-text-1" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
+                                <i class="fas fa-crop-alt mr-1"></i> Extract Text
+                            </button>
+                        </div>
+                        <div id="loading-1" class="loading-indicator">
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Extracting text...
+                        </div>
+                        <div id="extracted-text-1" class="text-result">No text extracted yet. Upload an image and click "Extract Text".</div>
+                    </div>
                 </div>
             </div>
             
@@ -184,6 +245,53 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <!-- Text Extraction Panel for Canvas 2 -->
+                    <div class="text-extraction-panel mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-lg font-medium text-gray-800">Extracted Text</h3>
+                            <button id="extract-text-2" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
+                                <i class="fas fa-crop-alt mr-1"></i> Extract Text
+                            </button>
+                        </div>
+                        <div id="loading-2" class="loading-indicator">
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Extracting text...
+                        </div>
+                        <div id="extracted-text-2" class="text-result">No text extracted yet. Upload an image and click "Extract Text".</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Text Comparison Panel -->
+        <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Text Comparison</h2>
+                <button id="compare-texts" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center">
+                    <i class="fas fa-balance-scale mr-2"></i> Compare Texts
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-800 mb-2">Canvas 1 Text</h3>
+                    <div id="comparison-text-1" class="text-result">No text to compare</div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-medium text-gray-800 mb-2">Canvas 2 Text</h3>
+                    <div id="comparison-text-2" class="text-result">No text to compare</div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-medium text-gray-800 mb-2">Similarity</h3>
+                    <div class="text-center">
+                        <div id="similarity-percentage" class="text-3xl font-bold text-gray-800">0%</div>
+                        <div class="similarity-meter">
+                            <div id="similarity-fill" class="similarity-fill" style="width: 0%"></div>
+                        </div>
+                        <div id="similarity-label" class="mt-2 text-sm text-gray-600">No comparison performed</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -202,14 +310,14 @@
                     <p class="text-gray-600">Use brush, shapes, text tools to annotate your images</p>
                 </div>
                 <div class="bg-purple-50 p-4 rounded-lg">
-                    <div class="text-purple-500 text-2xl mb-2"><i class="fas fa-highlighter"></i></div>
-                    <h3 class="font-semibold text-gray-800">Highlight</h3>
-                    <p class="text-gray-600">Use the highlighter tool to mark important areas</p>
+                    <div class="text-purple-500 text-2xl mb-2"><i class="fas fa-crop-alt"></i></div>
+                    <h3 class="font-semibold text-gray-800">Extract Text</h3>
+                    <p class="text-gray-600">Click "Extract Text" to extract text from uploaded images</p>
                 </div>
                 <div class="bg-yellow-50 p-4 rounded-lg">
-                    <div class="text-yellow-500 text-2xl mb-2"><i class="fas fa-download"></i></div>
-                    <h3 class="font-semibold text-gray-800">Export</h3>
-                    <p class="text-gray-600">Export each canvas individually using the export buttons</p>
+                    <div class="text-yellow-500 text-2xl mb-2"><i class="fas fa-balance-scale"></i></div>
+                    <h3 class="font-semibold text-gray-800">Compare</h3>
+                    <p class="text-gray-600">Compare extracted text to see similarity percentage</p>
                 </div>
             </div>
         </div>
@@ -225,6 +333,14 @@
             zoom: {
                 canvas1: 1.0,
                 canvas2: 1.0
+            },
+            extractedTexts: {
+                canvas1: '',
+                canvas2: ''
+            },
+            imageFiles: {
+                canvas1: null,
+                canvas2: null
             }
         };
         let canvas1, canvas2;
@@ -517,6 +633,9 @@
                     const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
                     state.zoom[canvasId] = 1.0;
                     updateZoomDisplay(canvas);
+                    
+                    // Store the image file for text extraction
+                    state.imageFiles[canvasId] = file;
                 };
                 img.src = event.target.result;
             };
@@ -532,14 +651,64 @@
             const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
             state.zoom[canvasId] = 1.0;
             updateZoomDisplay(canvas);
+            
+            // Clear image file and extracted text
+            state.imageFiles[canvasId] = null;
+            state.extractedTexts[canvasId] = '';
+            
+            // Update UI
+            const extractedTextElement = document.getElementById(`extracted-text-${canvasId === canvas1 ? '1' : '2'}`);
+            extractedTextElement.textContent = 'No text extracted yet. Upload an image and click "Extract Text".';
+            
+            // Update comparison if needed
+            updateComparisonTexts();
         }
         
         function exportCanvas(canvas, canvasNumber) {
-            const dataURL = canvas.toDataURL({
+            // Create a temporary canvas element
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Set the temporary canvas dimensions to match the original canvas
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            
+            // Fill with background color
+            tempCtx.fillStyle = canvas.backgroundColor || '#f8fafc';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Draw background image if exists
+            const backgroundImage = canvas.backgroundImage;
+            if (backgroundImage) {
+                tempCtx.drawImage(
+                    backgroundImage._element,
+                    backgroundImage.left,
+                    backgroundImage.top,
+                    backgroundImage.width * backgroundImage.scaleX,
+                    backgroundImage.height * backgroundImage.scaleY
+                );
+            }
+            
+            // Draw each object on the canvas
+            canvas.forEachObject(function(obj) {
+                // Skip objects that are currently being edited
+                if (obj.isEditing) return;
+                
+                // Clone the object to avoid modifying the original
+                const clonedObj = fabric.util.object.clone(obj);
+                
+                // Render the cloned object on the temporary canvas
+                // We need to use the original object's render method
+                obj.render(tempCtx);
+            });
+            
+            // Get the data URL from the temporary canvas
+            const dataURL = tempCanvas.toDataURL({
                 format: 'png',
                 quality: 0.8
             });
             
+            // Create download link
             const link = document.createElement('a');
             link.href = dataURL;
             link.download = `canvas-${canvasNumber}-annotated.png`;
@@ -556,6 +725,17 @@
             const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
             state.zoom[canvasId] = 1.0;
             updateZoomDisplay(canvas);
+            
+            // Clear image file and extracted text
+            state.imageFiles[canvasId] = null;
+            state.extractedTexts[canvasId] = '';
+            
+            // Update UI
+            const extractedTextElement = document.getElementById(`extracted-text-${canvasId === canvas1 ? '1' : '2'}`);
+            extractedTextElement.textContent = 'No text extracted yet. Upload an image and click "Extract Text".';
+            
+            // Update comparison if needed
+            updateComparisonTexts();
         }
         
         // Zoom functions
@@ -588,6 +768,102 @@
             const canvasId = canvas === canvas1 ? '1' : '2';
             const zoomLevel = Math.round(state.zoom[`canvas${canvasId}`] * 100);
             document.getElementById(`zoom-level-${canvasId}`).textContent = `${zoomLevel}%`;
+        }
+        
+        // Text extraction function using Tesseract.js
+        async function extractTextFromImage(file, canvasId) {
+            const loadingElement = document.getElementById(`loading-${canvasId === canvas1 ? '1' : '2'}`);
+            const extractedTextElement = document.getElementById(`extracted-text-${canvasId === canvas1 ? '1' : '2'}`);
+            
+            if (!file) {
+                extractedTextElement.textContent = 'No image uploaded. Please upload an image first.';
+                return;
+            }
+            
+            // Show loading indicator
+            loadingElement.style.display = 'block';
+            extractedTextElement.textContent = 'Processing...';
+            
+            try {
+                // Use Tesseract.js to extract text from the image
+                const { data: { text } } = await Tesseract.recognize(file, 'eng');
+                
+                // Store the extracted text
+                state.extractedTexts[canvasId] = text.trim();
+                
+                // Update the UI
+                extractedTextElement.textContent = text.trim() || 'No text found in the image.';
+                
+                // Update the comparison panel
+                updateComparisonTexts();
+            } catch (error) {
+                console.error('Error extracting text:', error);
+                extractedTextElement.textContent = 'Error extracting text. Please try again.';
+            } finally {
+                // Hide loading indicator
+                loadingElement.style.display = 'none';
+            }
+        }
+        
+        // Calculate text similarity
+        function calculateTextSimilarity() {
+            const text1 = state.extractedTexts.canvas1;
+            const text2 = state.extractedTexts.canvas2;
+            
+            if (!text1 || !text2) {
+                document.getElementById('similarity-percentage').textContent = '0%';
+                document.getElementById('similarity-fill').style.width = '0%';
+                document.getElementById('similarity-label').textContent = 'Extract text from both canvases first';
+                return;
+            }
+            
+            // Simple similarity calculation based on common words
+            const words1 = text1.toLowerCase().match(/\b\w+\b/g) || [];
+            const words2 = text2.toLowerCase().match(/\b\w+\b/g) || [];
+            
+            if (words1.length === 0 || words2.length === 0) {
+                document.getElementById('similarity-percentage').textContent = '0%';
+                document.getElementById('similarity-fill').style.width = '0%';
+                document.getElementById('similarity-label').textContent = 'No words to compare';
+                return;
+            }
+            
+            // Count common words
+            const wordSet1 = new Set(words1);
+            const wordSet2 = new Set(words2);
+            const commonWords = new Set([...wordSet1].filter(word => wordSet2.has(word)));
+            
+            // Calculate Jaccard similarity
+            const union = new Set([...wordSet1, ...wordSet2]);
+            const similarity = union.size > 0 ? commonWords.size / union.size : 0;
+            const percentage = Math.round(similarity * 100);
+            
+            // Update UI
+            document.getElementById('similarity-percentage').textContent = `${percentage}%`;
+            document.getElementById('similarity-fill').style.width = `${percentage}%`;
+            
+            // Update similarity label
+            let label = '';
+            if (percentage >= 80) {
+                label = 'Very High Similarity';
+            } else if (percentage >= 60) {
+                label = 'High Similarity';
+            } else if (percentage >= 40) {
+                label = 'Medium Similarity';
+            } else if (percentage >= 20) {
+                label = 'Low Similarity';
+            } else {
+                label = 'Very Low Similarity';
+            }
+            document.getElementById('similarity-label').textContent = label;
+        }
+        
+        // Update comparison texts
+        function updateComparisonTexts() {
+            document.getElementById('comparison-text-1').textContent = 
+                state.extractedTexts.canvas1 || 'No text extracted from Canvas 1';
+            document.getElementById('comparison-text-2').textContent = 
+                state.extractedTexts.canvas2 || 'No text extracted from Canvas 2';
         }
         
         document.addEventListener('DOMContentLoaded', () => {
@@ -670,6 +946,20 @@
             
             document.getElementById('export-btn-2').addEventListener('click', () => {
                 exportCanvas(canvas2, 2);
+            });
+            
+            // Text extraction handlers
+            document.getElementById('extract-text-1').addEventListener('click', () => {
+                extractTextFromImage(state.imageFiles.canvas1, 'canvas1');
+            });
+            
+            document.getElementById('extract-text-2').addEventListener('click', () => {
+                extractTextFromImage(state.imageFiles.canvas2, 'canvas2');
+            });
+            
+            // Text comparison handler
+            document.getElementById('compare-texts').addEventListener('click', () => {
+                calculateTextSimilarity();
             });
             
             // Zoom controls for canvas 1
