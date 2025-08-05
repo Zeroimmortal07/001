@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Instat Ice hockey Interactive Image Annotation Platform</title>
+<title>Interactive Image Annotation Platform</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -35,6 +35,10 @@ border-color: #94a3b8;
 .canvas-active {
 border-color: #3b82f6;
 box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+.canvas-selection-mode {
+border-color: #10b981;
+box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
 }
 .zoom-controls {
 position: absolute;
@@ -116,6 +120,12 @@ color: white;
 }
 .extract-btn:hover {
 background-color: #7c3aed;
+}
+.selection-btn {
+background-color: #10b981;
+}
+.selection-btn:hover {
+background-color: #0d9488;
 }
 .loading-indicator {
 display: none;
@@ -220,12 +230,16 @@ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation 
 font-size: 0.85em;
 color: #4b5563;
 }
+.selection-rectangle {
+border: 2px dashed #10b981;
+background-color: rgba(16, 185, 129, 0.1);
+}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 <div class="container mx-auto px-4 py-8" role="main">
 <header class="mb-8 text-center">
-<h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Instat Ice hockey Interactive Image Annotation Platform</h1>
+<h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Interactive Image Annotation Platform</h1>
 <p class="text-gray-600">Dual-canvas annotation with text extraction and comparison</p>
 </header>
 <div class="bg-white rounded-lg shadow-md p-4 mb-6" role="toolbar" aria-label="Annotation tools">
@@ -242,9 +256,6 @@ color: #4b5563;
 </button>
 <button id="highlighter-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Highlighter Tool">
 <i class="fas fa-highlighter mr-2" aria-hidden="true"></i> Highlighter
-</button>
-<button id="extract-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Text Extraction Tool">
-<i class="fas fa-crop-alt mr-2" aria-hidden="true"></i> Extract Text
 </button>
 </div>
 <div class="flex flex-wrap gap-3 items-center">
@@ -309,9 +320,14 @@ color: #4b5563;
 <div class="text-extraction-panel mt-4">
 <div class="flex justify-between items-center mb-2">
 <h3 class="text-lg font-medium text-gray-800">Extracted Text</h3>
-<button id="extract-text-1" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
-<i class="fas fa-crop-alt mr-1"></i> Extract Text
+<div class="flex gap-2">
+<button id="extract-full-text-1" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
+<i class="fas fa-crop-alt mr-1"></i> Extract Full
 </button>
+<button id="extract-selected-text-1" class="selection-btn px-3 py-1 rounded-md text-sm flex items-center">
+<i class="fas fa-mouse-pointer mr-1"></i> Select Area
+</button>
+</div>
 </div>
 <div id="loading-1" class="loading-indicator">
 <i class="fas fa-spinner fa-spin mr-2"></i> Extracting text...
@@ -358,9 +374,14 @@ color: #4b5563;
 <div class="text-extraction-panel mt-4">
 <div class="flex justify-between items-center mb-2">
 <h3 class="text-lg font-medium text-gray-800">Extracted Text</h3>
-<button id="extract-text-2" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
-<i class="fas fa-crop-alt mr-1"></i> Extract Text
+<div class="flex gap-2">
+<button id="extract-full-text-2" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
+<i class="fas fa-crop-alt mr-1"></i> Extract Full
 </button>
+<button id="extract-selected-text-2" class="selection-btn px-3 py-1 rounded-md text-sm flex items-center">
+<i class="fas fa-mouse-pointer mr-1"></i> Select Area
+</button>
+</div>
 </div>
 <div id="loading-2" class="loading-indicator">
 <i class="fas fa-spinner fa-spin mr-2"></i> Extracting text...
@@ -416,7 +437,10 @@ color: #4b5563;
 <div class="feature-card bg-purple-50 p-4 rounded-lg">
 <div class="text-purple-500 text-2xl mb-2"><i class="fas fa-crop-alt"></i></div>
 <h3 class="font-semibold text-gray-800">Extract Text</h3>
-<p class="text-gray-600">Click "Extract Text" to extract text from uploaded images</p>
+<p class="text-gray-600">
+<span class="block mb-1"><strong>Full Text:</strong> Click "Extract Full" to get all text</span>
+<span><strong>Selected Area:</strong> Click "Select Area" then draw a rectangle</span>
+</p>
 </div>
 <div class="feature-card bg-yellow-50 p-4 rounded-lg">
 <div class="text-yellow-500 text-2xl mb-2"><i class="fas fa-balance-scale"></i></div>
@@ -467,6 +491,10 @@ zoom: {
 canvas1: 1.0,
 canvas2: 1.0
 },
+extractionMode: {
+canvas1: 'none', // 'none', 'selecting'
+canvas2: 'none'
+},
 extractedTexts: {
 canvas1: '',
 canvas2: ''
@@ -475,6 +503,7 @@ imageFiles: {
 canvas1: null,
 canvas2: null
 },
+selectionRect: null,
 historyLimit: 50
 };
 let canvas1, canvas2;
@@ -629,6 +658,11 @@ showNotification('Nothing to redo', 'warning');
 }
 
 function configureTool(tool) {
+// Exit extraction mode if we're switching tools
+if (state.extractionMode.canvas1 === 'selecting' || state.extractionMode.canvas2 === 'selecting') {
+exitSelectionMode();
+}
+
 state.activeTool = tool;
 document.querySelectorAll('.tool-btn').forEach(btn => {
 btn.classList.remove('active');
@@ -974,7 +1008,7 @@ document.getElementById(`zoom-level-${canvasId}`).textContent = `${zoomLevel}%`;
 }
 
 // Text extraction function using Tesseract.js
-async function extractTextFromImage(file, canvasId) {
+async function extractTextFromImage(file, canvasId, selectionRect = null) {
 const loadingElement = document.getElementById(`loading-${canvasId === 'canvas1' ? '1' : '2'}`);
 const extractedTextElement = document.getElementById(`extracted-text-${canvasId === 'canvas1' ? '1' : '2'}`);
 const errorElement = document.getElementById(`error-${canvasId === 'canvas1' ? '1' : '2'}`);
@@ -993,9 +1027,71 @@ loadingElement.style.display = 'block';
 extractedTextElement.textContent = 'Processing...';
 
 try {
-// Use Tesseract.js to extract text from the image
+// Convert file to image for processing
+const img = new Image();
+const reader = new FileReader();
+
+// Use a promise to handle the asynchronous loading
+await new Promise((resolve, reject) => {
+reader.onload = function(e) {
+img.src = e.target.result;
+img.onload = resolve;
+img.onerror = reject;
+};
+reader.onerror = reject;
+reader.readAsDataURL(file);
+});
+
+// Create a canvas to draw the image on
+const tempCanvas = document.createElement('canvas');
+const ctx = tempCanvas.getContext('2d');
+
+// Set canvas dimensions to match the image
+tempCanvas.width = img.width;
+tempCanvas.height = img.height;
+
+// Draw the image on the canvas
+ctx.drawImage(img, 0, 0);
+
+// If we have a selection rectangle, crop to that area
+if (selectionRect) {
+// Convert from canvas coordinates to image coordinates
+const canvas = canvasId === 'canvas1' ? canvas1 : canvas2;
+const backgroundImage = canvas.backgroundImage;
+
+if (backgroundImage) {
+// Calculate scaling factors
+const scaleX = img.width / canvas.width;
+const scaleY = img.height / canvas.height;
+
+// Convert selection rectangle to image coordinates
+const imgX = (selectionRect.left - backgroundImage.left) * scaleX;
+const imgY = (selectionRect.top - backgroundImage.top) * scaleY;
+const imgWidth = selectionRect.width * scaleX;
+const imgHeight = selectionRect.height * scaleY;
+
+// Ensure coordinates are within bounds
+const safeX = Math.max(0, Math.round(imgX));
+const safeY = Math.max(0, Math.round(imgY));
+const safeWidth = Math.min(img.width - safeX, Math.round(imgWidth));
+const safeHeight = Math.min(img.height - safeY, Math.round(imgHeight));
+
+// Create a new canvas for the cropped area
+const cropCanvas = document.createElement('canvas');
+cropCanvas.width = safeWidth;
+cropCanvas.height = safeHeight;
+const cropCtx = cropCanvas.getContext('2d');
+
+// Draw only the selected area
+cropCtx.drawImage(
+tempCanvas,
+safeX, safeY, safeWidth, safeHeight,
+0, 0, safeWidth, safeHeight
+);
+
+// Use the cropped canvas for OCR
 const { data: { text } } = await Tesseract.recognize(
-file,
+cropCanvas,
 'eng',
 { logger: m => console.log(m) }
 );
@@ -1006,9 +1102,34 @@ state.extractedTexts[canvasId] = text.trim();
 // Update the UI
 if (text.trim()) {
 extractedTextElement.textContent = text.trim();
+showNotification('Text extracted successfully from selected area');
+} else {
+extractedTextElement.textContent = 'No text found in the selected area.';
+showNotification('No text found in the selected area', 'warning');
+}
+} else {
+extractedTextElement.textContent = 'No background image to extract from.';
+showNotification('No background image to extract from', 'error');
+}
+} else {
+// Full image extraction
+const { data: { text } } = await Tesseract.recognize(
+tempCanvas,
+'eng',
+{ logger: m => console.log(m) }
+);
+
+// Store the extracted text
+state.extractedTexts[canvasId] = text.trim();
+
+// Update the UI
+if (text.trim()) {
+extractedTextElement.textContent = text.trim();
+showNotification('Full text extracted successfully');
 } else {
 extractedTextElement.textContent = 'No text found in the image.';
 showNotification('No text found in the image', 'warning');
+}
 }
 
 // Update the comparison panel
@@ -1022,7 +1143,120 @@ showNotification('Text extraction failed. Please try again.', 'error');
 } finally {
 // Hide loading indicator
 loadingElement.style.display = 'none';
+
+// Exit selection mode if we were in it
+if (selectionRect) {
+exitSelectionMode();
 }
+}
+}
+
+// Enter selection mode for text extraction
+function enterSelectionMode(canvasId) {
+state.extractionMode[canvasId] = 'selecting';
+
+// Update UI to show selection mode
+const container = document.getElementById(`canvas-container-${canvasId === 'canvas1' ? '1' : '2'}`);
+container.classList.add('canvas-selection-mode');
+
+showNotification('Click and drag to select an area for text extraction', 'warning');
+
+const canvas = canvasId === 'canvas1' ? canvas1 : canvas2;
+
+// Disable other tools
+canvas.isDrawingMode = false;
+canvas.selection = false;
+
+let isSelecting = false;
+let selectionStart = { x: 0, y: 0 };
+let selectionRect = null;
+
+canvas.on('mouse:down', (e) => {
+if (e.e.altKey) return; // Prevent selection if alt key is pressed
+
+isSelecting = true;
+const pointer = canvas.getPointer(e.e);
+selectionStart = { x: pointer.x, y: pointer.y };
+
+// Create a temporary rectangle for selection
+selectionRect = new fabric.Rect({
+left: pointer.x,
+top: pointer.y,
+width: 0,
+height: 0,
+fill: 'rgba(16, 185, 129, 0.1)',
+stroke: '#10b981',
+strokeWidth: 2,
+strokeDashArray: [5, 5],
+selectable: false,
+evented: false
+});
+
+canvas.add(selectionRect);
+});
+
+canvas.on('mouse:move', (e) => {
+if (!isSelecting || !selectionRect) return;
+
+const pointer = canvas.getPointer(e.e);
+const width = pointer.x - selectionStart.x;
+const height = pointer.y - selectionStart.y;
+
+selectionRect.set({
+width: width,
+height: height
+});
+
+canvas.renderAll();
+});
+
+canvas.on('mouse:up', (e) => {
+if (!isSelecting) return;
+
+isSelecting = false;
+
+if (selectionRect) {
+// Ensure minimum size
+if (Math.abs(selectionRect.width) < 10 || Math.abs(selectionRect.height) < 10) {
+canvas.remove(selectionRect);
+exitSelectionMode();
+return;
+}
+
+// Normalize negative dimensions
+if (selectionRect.width < 0) {
+selectionRect.set({
+left: selectionRect.left + selectionRect.width,
+width: -selectionRect.width
+});
+}
+if (selectionRect.height < 0) {
+selectionRect.set({
+top: selectionRect.top + selectionRect.height,
+height: -selectionRect.height
+});
+}
+
+canvas.renderAll();
+
+// Extract text from the selected area
+extractTextFromImage(state.imageFiles[canvasId], canvasId, selectionRect);
+}
+});
+}
+
+// Exit selection mode
+function exitSelectionMode() {
+// Reset extraction mode
+state.extractionMode.canvas1 = 'none';
+state.extractionMode.canvas2 = 'none';
+
+// Update UI
+document.getElementById('canvas-container-1').classList.remove('canvas-selection-mode');
+document.getElementById('canvas-container-2').classList.remove('canvas-selection-mode');
+
+// Re-enable active tool
+configureTool(state.activeTool);
 }
 
 // Calculate text similarity using more robust algorithm
@@ -1216,13 +1450,22 @@ document.getElementById('export-btn-2').addEventListener('click', () => {
 exportCanvas(canvas2, 2);
 });
 
-// Text extraction handlers
-document.getElementById('extract-text-1').addEventListener('click', () => {
+// Text extraction handlers - Full text
+document.getElementById('extract-full-text-1').addEventListener('click', () => {
 extractTextFromImage(state.imageFiles.canvas1, 'canvas1');
 });
 
-document.getElementById('extract-text-2').addEventListener('click', () => {
+document.getElementById('extract-full-text-2').addEventListener('click', () => {
 extractTextFromImage(state.imageFiles.canvas2, 'canvas2');
+});
+
+// Text extraction handlers - Selected area
+document.getElementById('extract-selected-text-1').addEventListener('click', () => {
+enterSelectionMode('canvas1');
+});
+
+document.getElementById('extract-selected-text-2').addEventListener('click', () => {
+enterSelectionMode('canvas2');
 });
 
 // Text comparison handler
