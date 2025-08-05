@@ -1,979 +1,1271 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Image Annotation Platform</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Tesseract.js for OCR -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    <style>
-        .tool-btn.active {
-            background-color: #3b82f6;
-            color: white;
-        }
-        .tool-btn:hover {
-            background-color: #2563eb;
-            color: white;
-        }
-        .tool-btn:focus {
-            outline: 2px solid #2563eb;
-        }
-        .canvas-container {
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            position: relative;
-        }
-        .zoom-controls {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            display: flex;
-            gap: 5px;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 5px;
-            border-radius: 4px;
-            z-index: 10;
-        }
-        .zoom-btn {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            background-color: #f3f4f6;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .zoom-btn:hover {
-            background-color: #e5e7eb;
-        }
-        .zoom-level {
-            display: flex;
-            align-items: center;
-            padding: 0 8px;
-            font-size: 14px;
-            min-width: 50px;
-            justify-content: center;
-        }
-        .canvas-active {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-        }
-        .text-extraction-panel {
-            background-color: #f9fafb;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-        .text-result {
-            background-color: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.375rem;
-            padding: 0.75rem;
-            min-height: 100px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 0.875rem;
-        }
-        .similarity-meter {
-            height: 24px;
-            background-color: #e5e7eb;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-        .similarity-fill {
-            height: 100%;
-            background-color: #10b981;
-            transition: width 0.5s ease;
-        }
-        .extract-btn {
-            background-color: #8b5cf6;
-            color: white;
-        }
-        .extract-btn:hover {
-            background-color: #7c3aed;
-        }
-        .loading-indicator {
-            display: none;
-            text-align: center;
-            padding: 10px;
-            color: #8b5cf6;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instat Ice hockey Interactive Image Annotation Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Tesseract.js for OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<style>
+.tool-btn.active {
+background-color: #3b82f6;
+color: white;
+box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+.tool-btn:hover {
+background-color: #2563eb;
+color: white;
+}
+.tool-btn:focus {
+outline: 2px solid #2563eb;
+}
+.canvas-container {
+border: 1px solid #e2e8f0;
+border-radius: 0.5rem;
+overflow: hidden;
+position: relative;
+transition: all 0.2s ease;
+}
+.canvas-container:hover {
+border-color: #94a3b8;
+}
+.canvas-active {
+border-color: #3b82f6;
+box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+.zoom-controls {
+position: absolute;
+bottom: 10px;
+right: 10px;
+display: flex;
+gap: 5px;
+background: rgba(255, 255, 255, 0.85);
+padding: 5px;
+border-radius: 4px;
+z-index: 10;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+backdrop-filter: blur(2px);
+}
+.zoom-btn {
+width: 32px;
+height: 32px;
+display: flex;
+align-items: center;
+justify-content: center;
+border-radius: 4px;
+background-color: #f3f4f6;
+cursor: pointer;
+transition: all 0.2s;
+border: 1px solid #e2e8f0;
+}
+.zoom-btn:hover {
+background-color: #e5e7eb;
+transform: scale(1.05);
+}
+.zoom-btn:active {
+transform: scale(0.95);
+}
+.zoom-level {
+display: flex;
+align-items: center;
+padding: 0 8px;
+font-size: 14px;
+min-width: 50px;
+justify-content: center;
+font-weight: 500;
+color: #4b5563;
+}
+.text-extraction-panel {
+background-color: #f9fafb;
+border-radius: 0.5rem;
+padding: 1rem;
+margin-top: 1rem;
+border: 1px solid #e2e8f0;
+}
+.text-result {
+background-color: white;
+border: 1px solid #e5e7eb;
+border-radius: 0.375rem;
+padding: 0.75rem;
+min-height: 100px;
+max-height: 200px;
+overflow-y: auto;
+font-family: monospace;
+font-size: 0.875rem;
+line-height: 1.5;
+word-break: break-word;
+}
+.similarity-meter {
+height: 24px;
+background-color: #e5e7eb;
+border-radius: 12px;
+overflow: hidden;
+margin-top: 0.5rem;
+}
+.similarity-fill {
+height: 100%;
+background: linear-gradient(90deg, #10b981, #059669);
+transition: width 0.5s ease;
+}
+.extract-btn {
+background-color: #8b5cf6;
+color: white;
+}
+.extract-btn:hover {
+background-color: #7c3aed;
+}
+.loading-indicator {
+display: none;
+text-align: center;
+padding: 10px;
+color: #8b5cf6;
+font-weight: 500;
+}
+.error-message {
+display: none;
+color: #ef4444;
+padding: 8px;
+background-color: #fee2e2;
+border-radius: 0.375rem;
+margin-top: 8px;
+font-size: 0.875rem;
+}
+.tool-btn i {
+transition: transform 0.2s;
+}
+.tool-btn:hover i {
+transform: scale(1.1);
+}
+.canvas-container::after {
+content: '';
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+pointer-events: none;
+border-radius: 0.5rem;
+transition: all 0.2s;
+}
+.canvas-active::after {
+box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+.feature-card {
+transition: all 0.3s ease;
+}
+.feature-card:hover {
+transform: translateY(-3px);
+box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+.notification {
+position: fixed;
+top: 20px;
+right: 20px;
+padding: 12px 20px;
+border-radius: 6px;
+background-color: #10b981;
+color: white;
+font-weight: 500;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+z-index: 1000;
+opacity: 0;
+transform: translateY(-20px);
+transition: all 0.3s ease;
+}
+.notification.show {
+opacity: 1;
+transform: translateY(0);
+}
+.notification.error {
+background-color: #ef4444;
+}
+.notification.warning {
+background-color: #f59e0b;
+}
+.tooltip {
+position: relative;
+display: inline-block;
+}
+.tooltip .tooltip-text {
+visibility: hidden;
+width: 120px;
+background-color: #374151;
+color: #fff;
+text-align: center;
+border-radius: 4px;
+padding: 5px;
+position: absolute;
+z-index: 1;
+bottom: 125%;
+left: 50%;
+margin-left: -60px;
+opacity: 0;
+transition: opacity 0.3s;
+font-size: 0.75rem;
+}
+.tooltip:hover .tooltip-text {
+visibility: visible;
+opacity: 1;
+}
+.kbd {
+display: inline-block;
+padding: 0.15em 0.4em;
+border: 1px solid #e2e8f0;
+border-radius: 0.25em;
+background-color: #f8fafc;
+font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+font-size: 0.85em;
+color: #4b5563;
+}
+</style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8" role="main">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Interactive Image Annotation Platform</h1>
-            <p class="text-gray-600">Dual-canvas annotation with text extraction and comparison</p>
-        </header>
-        
-        <div class="bg-white rounded-lg shadow-md p-4 mb-6" role="toolbar" aria-label="Annotation tools">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex flex-wrap gap-2">
-                    <button id="brush-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Brush Tool">
-                        <i class="fas fa-pen mr-2" aria-hidden="true"></i> Brush
-                    </button>
-                    <button id="rectangle-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Rectangle Tool">
-                        <i class="fas fa-square mr-2" aria-hidden="true"></i> Rectangle
-                    </button>
-                    <button id="text-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Text Tool">
-                        <i class="fas fa-font mr-2" aria-hidden="true"></i> Text
-                    </button>
-                    <button id="highlighter-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Highlighter Tool">
-                        <i class="fas fa-highlighter mr-2" aria-hidden="true"></i> Highlighter
-                    </button>
-                    <button id="extract-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Text Extraction Tool">
-                        <i class="fas fa-crop-alt mr-2" aria-hidden="true"></i> Extract Text
-                    </button>
-                </div>
-                
-                <div class="flex flex-wrap gap-3 items-center">
-                    <div class="flex items-center">
-                        <label for="color-picker" class="mr-2 text-gray-700">Color:</label>
-                        <input type="color" id="color-picker" class="w-8 h-8 cursor-pointer" value="#3b82f6" aria-label="Select Brush Color">
-                    </div>
-                    
-                    <div class="flex items-center">
-                        <label for="brush-size" class="mr-2 text-gray-700">Size:</label>
-                        <input type="range" id="brush-size" min="1" max="50" value="5" class="w-24" aria-label="Brush Size Selector">
-                        <span id="size-value" class="ml-2 text-gray-700">5</span>
-                    </div>
-                    
-                    <button id="undo-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center" aria-label="Undo">
-                        <i class="fas fa-undo mr-2" aria-hidden="true"></i> Undo
-                    </button>
-                    
-                    <button id="redo-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center" aria-label="Redo">
-                        <i class="fas fa-redo mr-2" aria-hidden="true"></i> Redo
-                    </button>
-                    
-                    <button id="reset-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center" aria-label="Reset Canvas">
-                        <i class="fas fa-trash mr-2" aria-hidden="true"></i> Reset
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Canvas 1 -->
-            <div class="w-full lg:w-1/2">
-                <div class="bg-white rounded-lg shadow-md p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold text-gray-800">Canvas 1</h2>
-                        <div class="flex gap-2">
-                            <input type="file" id="file-input-1" accept="image/*" style="display: none;">
-                            <button id="upload-btn-1" class="px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600">
-                                <i class="fas fa-upload mr-2"></i> Upload Image
-                            </button>
-                            <button id="clear-image-1" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                                <i class="fas fa-times mr-2"></i> Clear
-                            </button>
-                            <button id="export-btn-1" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center" aria-label="Export Canvas 1">
-                                <i class="fas fa-download mr-2"></i> Export
-                            </button>
-                        </div>
-                    </div>
-                    <div class="canvas-container" id="canvas-container-1">
-                        <canvas id="canvas-1" width="800" height="500"></canvas>
-                        <div class="zoom-controls">
-                            <button class="zoom-btn" id="zoom-out-1" aria-label="Zoom Out">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <div class="zoom-level" id="zoom-level-1">100%</div>
-                            <button class="zoom-btn" id="zoom-in-1" aria-label="Zoom In">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                            <button class="zoom-btn" id="reset-zoom-1" aria-label="Reset Zoom">
-                                <i class="fas fa-compress"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Text Extraction Panel for Canvas 1 -->
-                    <div class="text-extraction-panel mt-4">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-lg font-medium text-gray-800">Extracted Text</h3>
-                            <button id="extract-text-1" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
-                                <i class="fas fa-crop-alt mr-1"></i> Extract Text
-                            </button>
-                        </div>
-                        <div id="loading-1" class="loading-indicator">
-                            <i class="fas fa-spinner fa-spin mr-2"></i> Extracting text...
-                        </div>
-                        <div id="extracted-text-1" class="text-result">No text extracted yet. Upload an image and click "Extract Text".</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Canvas 2 -->
-            <div class="w-full lg:w-1/2">
-                <div class="bg-white rounded-lg shadow-md p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold text-gray-800">Canvas 2</h2>
-                        <div class="flex gap-2">
-                            <input type="file" id="file-input-2" accept="image/*" style="display: none;">
-                            <button id="upload-btn-2" class="px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600">
-                                <i class="fas fa-upload mr-2"></i> Upload Image
-                            </button>
-                            <button id="clear-image-2" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                                <i class="fas fa-times mr-2"></i> Clear
-                            </button>
-                            <button id="export-btn-2" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center" aria-label="Export Canvas 2">
-                                <i class="fas fa-download mr-2"></i> Export
-                            </button>
-                        </div>
-                    </div>
-                    <div class="canvas-container" id="canvas-container-2">
-                        <canvas id="canvas-2" width="800" height="500"></canvas>
-                        <div class="zoom-controls">
-                            <button class="zoom-btn" id="zoom-out-2" aria-label="Zoom Out">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <div class="zoom-level" id="zoom-level-2">100%</div>
-                            <button class="zoom-btn" id="zoom-in-2" aria-label="Zoom In">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                            <button class="zoom-btn" id="reset-zoom-2" aria-label="Reset Zoom">
-                                <i class="fas fa-compress"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Text Extraction Panel for Canvas 2 -->
-                    <div class="text-extraction-panel mt-4">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-lg font-medium text-gray-800">Extracted Text</h3>
-                            <button id="extract-text-2" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
-                                <i class="fas fa-crop-alt mr-1"></i> Extract Text
-                            </button>
-                        </div>
-                        <div id="loading-2" class="loading-indicator">
-                            <i class="fas fa-spinner fa-spin mr-2"></i> Extracting text...
-                        </div>
-                        <div id="extracted-text-2" class="text-result">No text extracted yet. Upload an image and click "Extract Text".</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Text Comparison Panel -->
-        <div class="bg-white rounded-lg shadow-md p-6 mt-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-gray-800">Text Comparison</h2>
-                <button id="compare-texts" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center">
-                    <i class="fas fa-balance-scale mr-2"></i> Compare Texts
-                </button>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <h3 class="text-lg font-medium text-gray-800 mb-2">Canvas 1 Text</h3>
-                    <div id="comparison-text-1" class="text-result">No text to compare</div>
-                </div>
-                
-                <div>
-                    <h3 class="text-lg font-medium text-gray-800 mb-2">Canvas 2 Text</h3>
-                    <div id="comparison-text-2" class="text-result">No text to compare</div>
-                </div>
-                
-                <div>
-                    <h3 class="text-lg font-medium text-gray-800 mb-2">Similarity</h3>
-                    <div class="text-center">
-                        <div id="similarity-percentage" class="text-3xl font-bold text-gray-800">0%</div>
-                        <div class="similarity-meter">
-                            <div id="similarity-fill" class="similarity-fill" style="width: 0%"></div>
-                        </div>
-                        <div id="similarity-label" class="mt-2 text-sm text-gray-600">No comparison performed</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">How to Use</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-blue-50 p-4 rounded-lg">
-                    <div class="text-blue-500 text-2xl mb-2"><i class="fas fa-upload"></i></div>
-                    <h3 class="font-semibold text-gray-800">Upload Images</h3>
-                    <p class="text-gray-600">Click "Upload Image" to load your images onto the canvases</p>
-                </div>
-                <div class="bg-green-50 p-4 rounded-lg">
-                    <div class="text-green-500 text-2xl mb-2"><i class="fas fa-pen"></i></div>
-                    <h3 class="font-semibold text-gray-800">Annotate</h3>
-                    <p class="text-gray-600">Use brush, shapes, text tools to annotate your images</p>
-                </div>
-                <div class="bg-purple-50 p-4 rounded-lg">
-                    <div class="text-purple-500 text-2xl mb-2"><i class="fas fa-crop-alt"></i></div>
-                    <h3 class="font-semibold text-gray-800">Extract Text</h3>
-                    <p class="text-gray-600">Click "Extract Text" to extract text from uploaded images</p>
-                </div>
-                <div class="bg-yellow-50 p-4 rounded-lg">
-                    <div class="text-yellow-500 text-2xl mb-2"><i class="fas fa-balance-scale"></i></div>
-                    <h3 class="font-semibold text-gray-800">Compare</h3>
-                    <p class="text-gray-600">Compare extracted text to see similarity percentage</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        const state = {
-            activeTool: 'brush',
-            brushColor: '#3b82f6',
-            brushSize: 5,
-            fontFamily: 'Arial',
-            fontSize: 16,
-            zoom: {
-                canvas1: 1.0,
-                canvas2: 1.0
-            },
-            extractedTexts: {
-                canvas1: '',
-                canvas2: ''
-            },
-            imageFiles: {
-                canvas1: null,
-                canvas2: null
-            }
-        };
-        let canvas1, canvas2;
-        let activeCanvas = null;
-        const history = {
-            canvas1: {
-                undo: [],
-                redo: []
-            },
-            canvas2: {
-                undo: [],
-                redo: []
-            }
-        };
-        
-        function initCanvases() {
-            canvas1 = new fabric.Canvas('canvas-1', {
-                backgroundColor: '#f8fafc',
-                selection: true
-            });
-            
-            canvas2 = new fabric.Canvas('canvas-2', {
-                backgroundColor: '#f8fafc',
-                selection: true
-            });
-            
-            activeCanvas = canvas1;
-            setActiveCanvas(canvas1);
-            
-            // Save initial state
-            saveState(canvas1);
-            saveState(canvas2);
-            
-            // Set up event listeners for history
-            canvas1.on('path:created', () => saveState(canvas1));
-            canvas1.on('object:added', () => saveState(canvas1));
-            canvas1.on('object:modified', () => saveState(canvas1));
-            canvas1.on('object:removed', () => saveState(canvas1));
-            
-            canvas2.on('path:created', () => saveState(canvas2));
-            canvas2.on('object:added', () => saveState(canvas2));
-            canvas2.on('object:modified', () => saveState(canvas2));
-            canvas2.on('object:removed', () => saveState(canvas2));
-            
-            // Set up canvas click to activate
-            canvas1.on('mouse:down', () => setActiveCanvas(canvas1));
-            canvas2.on('mouse:down', () => setActiveCanvas(canvas2));
-        }
-        
-        function setActiveCanvas(canvas) {
-            activeCanvas = canvas;
-            // Update UI to show which canvas is active
-            document.querySelectorAll('.canvas-container').forEach(container => {
-                container.classList.remove('canvas-active');
-            });
-            
-            if (canvas === canvas1) {
-                document.getElementById('canvas-container-1').classList.add('canvas-active');
-            } else {
-                document.getElementById('canvas-container-2').classList.add('canvas-active');
-            }
-        }
-        
-        function saveState(canvas) {
-            const canvasData = canvas.toJSON();
-            const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
-            
-            // Save current state to undo stack
-            canvasHistory.undo.push(JSON.stringify(canvasData));
-            
-            // Limit undo stack size
-            if (canvasHistory.undo.length > 50) {
-                canvasHistory.undo.shift();
-            }
-            
-            // Clear redo stack when new action is performed
-            canvasHistory.redo = [];
-        }
-        
-        function undo(canvas) {
-            const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
-            
-            if (canvasHistory.undo.length > 1) {
-                // Save current state to redo stack
-                const currentState = canvas.toJSON();
-                canvasHistory.redo.push(JSON.stringify(currentState));
-                
-                // Remove current state from undo stack
-                canvasHistory.undo.pop();
-                
-                // Get previous state
-                const previousState = JSON.parse(canvasHistory.undo[canvasHistory.undo.length - 1]);
-                
-                // Load previous state
-                canvas.loadFromJSON(previousState, () => {
-                    canvas.renderAll();
-                });
-            }
-        }
-        
-        function redo(canvas) {
-            const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
-            
-            if (canvasHistory.redo.length > 0) {
-                // Save current state to undo stack
-                const currentState = canvas.toJSON();
-                canvasHistory.undo.push(JSON.stringify(currentState));
-                
-                // Get next state from redo stack
-                const nextState = JSON.parse(canvasHistory.redo.pop());
-                
-                // Load next state
-                canvas.loadFromJSON(nextState, () => {
-                    canvas.renderAll();
-                });
-            }
-        }
-        
-        function configureTool(tool) {
-            state.activeTool = tool;
-            
-            document.querySelectorAll('.tool-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById(`${tool}-tool`).classList.add('active');
-            
-            [canvas1, canvas2].forEach(canvas => {
-                canvas.isDrawingMode = false;
-                canvas.off('mouse:down');
-                canvas.off('mouse:move');
-                canvas.off('mouse:up');
-                canvas.selection = true;
-                
-                switch(tool) {
-                    case 'brush':
-                        canvas.isDrawingMode = true;
-                        canvas.selection = false;
-                        const brush = new fabric.PencilBrush(canvas);
-                        brush.color = state.brushColor;
-                        brush.width = state.brushSize;
-                        canvas.freeDrawingBrush = brush;
-                        break;
-                        
-                    case 'rectangle':
-                        setupRectangleTool(canvas);
-                        break;
-                        
-                    case 'text':
-                        setupTextTool(canvas);
-                        break;
-                        
-                    case 'highlighter':
-                        canvas.isDrawingMode = true;
-                        canvas.selection = false;
-                        const highlighter = new fabric.PencilBrush(canvas);
-                        // Convert hex color to rgba with transparency for highlighter effect
-                        const r = parseInt(state.brushColor.slice(1, 3), 16);
-                        const g = parseInt(state.brushColor.slice(3, 5), 16);
-                        const b = parseInt(state.brushColor.slice(5, 7), 16);
-                        highlighter.color = `rgba(${r}, ${g}, ${b}, 0.3)`;
-                        highlighter.width = state.brushSize * 2; // Make highlighter thicker
-                        canvas.freeDrawingBrush = highlighter;
-                        break;
-                }
-            });
-        }
-        
-        function setupRectangleTool(canvas) {
-            let isDrawing = false;
-            let startX, startY;
-            let rect;
-            
-            canvas.on('mouse:down', (o) => {
-                isDrawing = true;
-                const pointer = canvas.getPointer(o.e);
-                startX = pointer.x;
-                startY = pointer.y;
-                
-                rect = new fabric.Rect({
-                    left: startX,
-                    top: startY,
-                    width: 0,
-                    height: 0,
-                    fill: 'rgba(59, 130, 246, 0.3)',
-                    stroke: state.brushColor,
-                    strokeWidth: 2,
-                    selectable: true
-                });
-                canvas.add(rect);
-            });
-            
-            canvas.on('mouse:move', (o) => {
-                if (!isDrawing) return;
-                
-                const pointer = canvas.getPointer(o.e);
-                const width = pointer.x - startX;
-                const height = pointer.y - startY;
-                
-                if (rect) {
-                    rect.set({
-                        width: width,
-                        height: height
-                    });
-                    canvas.renderAll();
-                }
-            });
-            
-            canvas.on('mouse:up', () => {
-                isDrawing = false;
-                if (rect) {
-                    // Ensure minimum size
-                    if (Math.abs(rect.width) < 5 || Math.abs(rect.height) < 5) {
-                        canvas.remove(rect);
-                    } else {
-                        // Normalize negative dimensions
-                        if (rect.width < 0) {
-                            rect.set({
-                                left: rect.left + rect.width,
-                                width: -rect.width
-                            });
-                        }
-                        if (rect.height < 0) {
-                            rect.set({
-                                top: rect.top + rect.height,
-                                height: -rect.height
-                            });
-                        }
-                        canvas.renderAll();
-                        saveState(canvas);
-                    }
-                }
-            });
-        }
-        
-        function setupTextTool(canvas) {
-            canvas.on('mouse:down', (o) => {
-                const pointer = canvas.getPointer(o.e);
-                const textbox = new fabric.Textbox('Annotation text', {
-                    left: pointer.x,
-                    top: pointer.y,
-                    width: 200,
-                    fontSize: state.fontSize,
-                    fill: state.brushColor,
-                    editable: true,
-                    hasControls: true
-                });
-                canvas.add(textbox);
-                textbox.enterEditing();
-                canvas.setActiveObject(textbox);
-                saveState(canvas);
-            });
-        }
-        
-        function loadImageToCanvas(file, canvas) {
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                // Create a new Image object
-                const img = new Image();
-                img.onload = function() {
-                    // Calculate scaling to fit canvas while maintaining aspect ratio
-                    const canvasWidth = canvas.width;
-                    const canvasHeight = canvas.height;
-                    const imgWidth = img.width;
-                    const imgHeight = img.height;
-                    
-                    const scale = Math.min(
-                        canvasWidth / imgWidth,
-                        canvasHeight / imgHeight
-                    );
-                    
-                    // Create a fabric.Image from the loaded image
-                    const fabricImage = new fabric.Image(img, {
-                        left: (canvasWidth - imgWidth * scale) / 2,
-                        top: (canvasHeight - imgHeight * scale) / 2,
-                        scaleX: scale,
-                        scaleY: scale,
-                        selectable: false
-                    });
-                    
-                    // Set as background image
-                    canvas.setBackgroundImage(fabricImage, () => {
-                        canvas.renderAll();
-                        saveState(canvas);
-                    });
-                    
-                    // Reset zoom when new image is loaded
-                    const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
-                    state.zoom[canvasId] = 1.0;
-                    updateZoomDisplay(canvas);
-                    
-                    // Store the image file for text extraction
-                    state.imageFiles[canvasId] = file;
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-        
-        function clearCanvasImage(canvas) {
-            canvas.setBackgroundImage(null, () => {
-                canvas.renderAll();
-                saveState(canvas);
-            });
-            // Reset zoom when image is cleared
-            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
-            state.zoom[canvasId] = 1.0;
-            updateZoomDisplay(canvas);
-            
-            // Clear image file and extracted text
-            state.imageFiles[canvasId] = null;
-            state.extractedTexts[canvasId] = '';
-            
-            // Update UI
-            const extractedTextElement = document.getElementById(`extracted-text-${canvasId === canvas1 ? '1' : '2'}`);
-            extractedTextElement.textContent = 'No text extracted yet. Upload an image and click "Extract Text".';
-            
-            // Update comparison if needed
-            updateComparisonTexts();
-        }
-        
-        function exportCanvas(canvas, canvasNumber) {
-            // Create a temporary canvas element
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            // Set the temporary canvas dimensions to match the original canvas
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            
-            // Fill with background color
-            tempCtx.fillStyle = canvas.backgroundColor || '#f8fafc';
-            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-            
-            // Draw background image if exists
-            const backgroundImage = canvas.backgroundImage;
-            if (backgroundImage) {
-                tempCtx.drawImage(
-                    backgroundImage._element,
-                    backgroundImage.left,
-                    backgroundImage.top,
-                    backgroundImage.width * backgroundImage.scaleX,
-                    backgroundImage.height * backgroundImage.scaleY
-                );
-            }
-            
-            // Draw each object on the canvas
-            canvas.forEachObject(function(obj) {
-                // Skip objects that are currently being edited
-                if (obj.isEditing) return;
-                
-                // Clone the object to avoid modifying the original
-                const clonedObj = fabric.util.object.clone(obj);
-                
-                // Render the cloned object on the temporary canvas
-                // We need to use the original object's render method
-                obj.render(tempCtx);
-            });
-            
-            // Get the data URL from the temporary canvas
-            const dataURL = tempCanvas.toDataURL({
-                format: 'png',
-                quality: 0.8
-            });
-            
-            // Create download link
-            const link = document.createElement('a');
-            link.href = dataURL;
-            link.download = `canvas-${canvasNumber}-annotated.png`;
-            link.click();
-        }
-        
-        function resetCanvas(canvas) {
-            canvas.clear();
-            canvas.backgroundColor = '#f8fafc';
-            canvas.renderAll();
-            saveState(canvas);
-            
-            // Reset zoom when canvas is reset
-            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
-            state.zoom[canvasId] = 1.0;
-            updateZoomDisplay(canvas);
-            
-            // Clear image file and extracted text
-            state.imageFiles[canvasId] = null;
-            state.extractedTexts[canvasId] = '';
-            
-            // Update UI
-            const extractedTextElement = document.getElementById(`extracted-text-${canvasId === canvas1 ? '1' : '2'}`);
-            extractedTextElement.textContent = 'No text extracted yet. Upload an image and click "Extract Text".';
-            
-            // Update comparison if needed
-            updateComparisonTexts();
-        }
-        
-        // Zoom functions
-        function zoomIn(canvas) {
-            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
-            state.zoom[canvasId] *= 1.2;
-            canvas.setZoom(state.zoom[canvasId]);
-            canvas.renderAll();
-            updateZoomDisplay(canvas);
-        }
-        
-        function zoomOut(canvas) {
-            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
-            state.zoom[canvasId] /= 1.2;
-            canvas.setZoom(state.zoom[canvasId]);
-            canvas.renderAll();
-            updateZoomDisplay(canvas);
-        }
-        
-        function resetZoom(canvas) {
-            const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
-            state.zoom[canvasId] = 1.0;
-            canvas.setZoom(1.0);
-            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-            canvas.renderAll();
-            updateZoomDisplay(canvas);
-        }
-        
-        function updateZoomDisplay(canvas) {
-            const canvasId = canvas === canvas1 ? '1' : '2';
-            const zoomLevel = Math.round(state.zoom[`canvas${canvasId}`] * 100);
-            document.getElementById(`zoom-level-${canvasId}`).textContent = `${zoomLevel}%`;
-        }
-        
-        // Text extraction function using Tesseract.js
-        async function extractTextFromImage(file, canvasId) {
-            const loadingElement = document.getElementById(`loading-${canvasId === canvas1 ? '1' : '2'}`);
-            const extractedTextElement = document.getElementById(`extracted-text-${canvasId === canvas1 ? '1' : '2'}`);
-            
-            if (!file) {
-                extractedTextElement.textContent = 'No image uploaded. Please upload an image first.';
-                return;
-            }
-            
-            // Show loading indicator
-            loadingElement.style.display = 'block';
-            extractedTextElement.textContent = 'Processing...';
-            
-            try {
-                // Use Tesseract.js to extract text from the image
-                const { data: { text } } = await Tesseract.recognize(file, 'eng');
-                
-                // Store the extracted text
-                state.extractedTexts[canvasId] = text.trim();
-                
-                // Update the UI
-                extractedTextElement.textContent = text.trim() || 'No text found in the image.';
-                
-                // Update the comparison panel
-                updateComparisonTexts();
-            } catch (error) {
-                console.error('Error extracting text:', error);
-                extractedTextElement.textContent = 'Error extracting text. Please try again.';
-            } finally {
-                // Hide loading indicator
-                loadingElement.style.display = 'none';
-            }
-        }
-        
-        // Calculate text similarity
-        function calculateTextSimilarity() {
-            const text1 = state.extractedTexts.canvas1;
-            const text2 = state.extractedTexts.canvas2;
-            
-            if (!text1 || !text2) {
-                document.getElementById('similarity-percentage').textContent = '0%';
-                document.getElementById('similarity-fill').style.width = '0%';
-                document.getElementById('similarity-label').textContent = 'Extract text from both canvases first';
-                return;
-            }
-            
-            // Simple similarity calculation based on common words
-            const words1 = text1.toLowerCase().match(/\b\w+\b/g) || [];
-            const words2 = text2.toLowerCase().match(/\b\w+\b/g) || [];
-            
-            if (words1.length === 0 || words2.length === 0) {
-                document.getElementById('similarity-percentage').textContent = '0%';
-                document.getElementById('similarity-fill').style.width = '0%';
-                document.getElementById('similarity-label').textContent = 'No words to compare';
-                return;
-            }
-            
-            // Count common words
-            const wordSet1 = new Set(words1);
-            const wordSet2 = new Set(words2);
-            const commonWords = new Set([...wordSet1].filter(word => wordSet2.has(word)));
-            
-            // Calculate Jaccard similarity
-            const union = new Set([...wordSet1, ...wordSet2]);
-            const similarity = union.size > 0 ? commonWords.size / union.size : 0;
-            const percentage = Math.round(similarity * 100);
-            
-            // Update UI
-            document.getElementById('similarity-percentage').textContent = `${percentage}%`;
-            document.getElementById('similarity-fill').style.width = `${percentage}%`;
-            
-            // Update similarity label
-            let label = '';
-            if (percentage >= 80) {
-                label = 'Very High Similarity';
-            } else if (percentage >= 60) {
-                label = 'High Similarity';
-            } else if (percentage >= 40) {
-                label = 'Medium Similarity';
-            } else if (percentage >= 20) {
-                label = 'Low Similarity';
-            } else {
-                label = 'Very Low Similarity';
-            }
-            document.getElementById('similarity-label').textContent = label;
-        }
-        
-        // Update comparison texts
-        function updateComparisonTexts() {
-            document.getElementById('comparison-text-1').textContent = 
-                state.extractedTexts.canvas1 || 'No text extracted from Canvas 1';
-            document.getElementById('comparison-text-2').textContent = 
-                state.extractedTexts.canvas2 || 'No text extracted from Canvas 2';
-        }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            initCanvases();
-            
-            document.getElementById('brush-tool').addEventListener('click', () => configureTool('brush'));
-            document.getElementById('rectangle-tool').addEventListener('click', () => configureTool('rectangle'));
-            document.getElementById('text-tool').addEventListener('click', () => configureTool('text'));
-            document.getElementById('highlighter-tool').addEventListener('click', () => configureTool('highlighter'));
-            
-            document.getElementById('color-picker').addEventListener('input', (e) => {
-                state.brushColor = e.target.value;
-                if (state.activeTool === 'brush') {
-                    configureTool('brush');
-                } else if (state.activeTool === 'highlighter') {
-                    configureTool('highlighter');
-                }
-            });
-            
-            const brushSize = document.getElementById('brush-size');
-            const sizeValue = document.getElementById('size-value');
-            
-            brushSize.addEventListener('input', (e) => {
-                state.brushSize = parseInt(e.target.value);
-                sizeValue.textContent = state.brushSize;
-                if (state.activeTool === 'brush') {
-                    configureTool('brush');
-                } else if (state.activeTool === 'highlighter') {
-                    configureTool('highlighter');
-                }
-            });
-            
-            document.getElementById('undo-btn').addEventListener('click', () => {
-                undo(activeCanvas);
-            });
-            
-            document.getElementById('redo-btn').addEventListener('click', () => {
-                redo(activeCanvas);
-            });
-            
-            document.getElementById('reset-btn').addEventListener('click', () => {
-                resetCanvas(activeCanvas);
-            });
-            
-            // Image upload handlers for Canvas 1
-            document.getElementById('upload-btn-1').addEventListener('click', () => {
-                document.getElementById('file-input-1').click();
-            });
-            
-            document.getElementById('file-input-1').addEventListener('change', (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    loadImageToCanvas(e.target.files[0], canvas1);
-                }
-            });
-            
-            // Image upload handlers for Canvas 2
-            document.getElementById('upload-btn-2').addEventListener('click', () => {
-                document.getElementById('file-input-2').click();
-            });
-            
-            document.getElementById('file-input-2').addEventListener('change', (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    loadImageToCanvas(e.target.files[0], canvas2);
-                }
-            });
-            
-            // Clear image handlers
-            document.getElementById('clear-image-1').addEventListener('click', () => {
-                clearCanvasImage(canvas1);
-            });
-            
-            document.getElementById('clear-image-2').addEventListener('click', () => {
-                clearCanvasImage(canvas2);
-            });
-            
-            // Export handlers for each canvas
-            document.getElementById('export-btn-1').addEventListener('click', () => {
-                exportCanvas(canvas1, 1);
-            });
-            
-            document.getElementById('export-btn-2').addEventListener('click', () => {
-                exportCanvas(canvas2, 2);
-            });
-            
-            // Text extraction handlers
-            document.getElementById('extract-text-1').addEventListener('click', () => {
-                extractTextFromImage(state.imageFiles.canvas1, 'canvas1');
-            });
-            
-            document.getElementById('extract-text-2').addEventListener('click', () => {
-                extractTextFromImage(state.imageFiles.canvas2, 'canvas2');
-            });
-            
-            // Text comparison handler
-            document.getElementById('compare-texts').addEventListener('click', () => {
-                calculateTextSimilarity();
-            });
-            
-            // Zoom controls for canvas 1
-            document.getElementById('zoom-in-1').addEventListener('click', () => zoomIn(canvas1));
-            document.getElementById('zoom-out-1').addEventListener('click', () => zoomOut(canvas1));
-            document.getElementById('reset-zoom-1').addEventListener('click', () => resetZoom(canvas1));
-            
-            // Zoom controls for canvas 2
-            document.getElementById('zoom-in-2').addEventListener('click', () => zoomIn(canvas2));
-            document.getElementById('zoom-out-2').addEventListener('click', () => zoomOut(canvas2));
-            document.getElementById('reset-zoom-2').addEventListener('click', () => resetZoom(canvas2));
-            
-            configureTool('brush');
-        });
-    </script>
-</body>
+<div class="container mx-auto px-4 py-8" role="main">
+<header class="mb-8 text-center">
+<h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Instat Ice hockey Interactive Image Annotation Platform</h1>
+<p class="text-gray-600">Dual-canvas annotation with text extraction and comparison</p>
+</header>
+<div class="bg-white rounded-lg shadow-md p-4 mb-6" role="toolbar" aria-label="Annotation tools">
+<div class="flex flex-wrap items-center justify-between gap-4">
+<div class="flex flex-wrap gap-2">
+<button id="brush-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center active" aria-label="Brush Tool" aria-pressed="true">
+<i class="fas fa-pen mr-2" aria-hidden="true"></i> Brush
+</button>
+<button id="rectangle-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Rectangle Tool">
+<i class="fas fa-square mr-2" aria-hidden="true"></i> Rectangle
+</button>
+<button id="text-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Text Tool">
+<i class="fas fa-font mr-2" aria-hidden="true"></i> Text
+</button>
+<button id="highlighter-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Highlighter Tool">
+<i class="fas fa-highlighter mr-2" aria-hidden="true"></i> Highlighter
+</button>
+<button id="extract-tool" class="tool-btn px-4 py-2 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center" aria-label="Text Extraction Tool">
+<i class="fas fa-crop-alt mr-2" aria-hidden="true"></i> Extract Text
+</button>
+</div>
+<div class="flex flex-wrap gap-3 items-center">
+<div class="flex items-center">
+<label for="color-picker" class="mr-2 text-gray-700">Color:</label>
+<input type="color" id="color-picker" class="w-8 h-8 cursor-pointer" value="#3b82f6" aria-label="Select Brush Color">
+</div>
+<div class="flex items-center">
+<label for="brush-size" class="mr-2 text-gray-700">Size:</label>
+<input type="range" id="brush-size" min="1" max="50" value="5" class="w-24" aria-label="Brush Size Selector">
+<span id="size-value" class="ml-2 text-gray-700">5</span>
+</div>
+<button id="undo-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center tooltip" aria-label="Undo">
+<i class="fas fa-undo mr-2" aria-hidden="true"></i> Undo
+<span class="tooltip-text">Ctrl+Z</span>
+</button>
+<button id="redo-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center tooltip" aria-label="Redo">
+<i class="fas fa-redo mr-2" aria-hidden="true"></i> Redo
+<span class="tooltip-text">Ctrl+Y</span>
+</button>
+<button id="reset-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center" aria-label="Reset Canvas">
+<i class="fas fa-trash mr-2" aria-hidden="true"></i> Reset
+</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col lg:flex-row gap-6">
+<!-- Canvas 1 -->
+<div class="w-full lg:w-1/2">
+<div class="bg-white rounded-lg shadow-md p-4">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-semibold text-gray-800">Canvas 1</h2>
+<div class="flex gap-2">
+<input type="file" id="file-input-1" accept="image/*" style="display: none;">
+<button id="upload-btn-1" class="px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600">
+<i class="fas fa-upload mr-2"></i> Upload Image
+</button>
+<button id="clear-image-1" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+<i class="fas fa-times mr-2"></i> Clear
+</button>
+<button id="export-btn-1" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center" aria-label="Export Canvas 1">
+<i class="fas fa-download mr-2"></i> Export
+</button>
+</div>
+</div>
+<div class="canvas-container" id="canvas-container-1">
+<canvas id="canvas-1" width="800" height="500"></canvas>
+<div class="zoom-controls">
+<button class="zoom-btn" id="zoom-out-1" aria-label="Zoom Out">
+<i class="fas fa-minus"></i>
+</button>
+<div class="zoom-level" id="zoom-level-1">100%</div>
+<button class="zoom-btn" id="zoom-in-1" aria-label="Zoom In">
+<i class="fas fa-plus"></i>
+</button>
+<button class="zoom-btn" id="reset-zoom-1" aria-label="Reset Zoom">
+<i class="fas fa-compress"></i>
+</button>
+</div>
+</div>
+<!-- Text Extraction Panel for Canvas 1 -->
+<div class="text-extraction-panel mt-4">
+<div class="flex justify-between items-center mb-2">
+<h3 class="text-lg font-medium text-gray-800">Extracted Text</h3>
+<button id="extract-text-1" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
+<i class="fas fa-crop-alt mr-1"></i> Extract Text
+</button>
+</div>
+<div id="loading-1" class="loading-indicator">
+<i class="fas fa-spinner fa-spin mr-2"></i> Extracting text...
+</div>
+<div id="error-1" class="error-message"></div>
+<div id="extracted-text-1" class="text-result">No text extracted yet. Upload an image and click "Extract Text".</div>
+</div>
+</div>
+</div>
+<!-- Canvas 2 -->
+<div class="w-full lg:w-1/2">
+<div class="bg-white rounded-lg shadow-md p-4">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-semibold text-gray-800">Canvas 2</h2>
+<div class="flex gap-2">
+<input type="file" id="file-input-2" accept="image/*" style="display: none;">
+<button id="upload-btn-2" class="px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600">
+<i class="fas fa-upload mr-2"></i> Upload Image
+</button>
+<button id="clear-image-2" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+<i class="fas fa-times mr-2"></i> Clear
+</button>
+<button id="export-btn-2" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center" aria-label="Export Canvas 2">
+<i class="fas fa-download mr-2"></i> Export
+</button>
+</div>
+</div>
+<div class="canvas-container" id="canvas-container-2">
+<canvas id="canvas-2" width="800" height="500"></canvas>
+<div class="zoom-controls">
+<button class="zoom-btn" id="zoom-out-2" aria-label="Zoom Out">
+<i class="fas fa-minus"></i>
+</button>
+<div class="zoom-level" id="zoom-level-2">100%</div>
+<button class="zoom-btn" id="zoom-in-2" aria-label="Zoom In">
+<i class="fas fa-plus"></i>
+</button>
+<button class="zoom-btn" id="reset-zoom-2" aria-label="Reset Zoom">
+<i class="fas fa-compress"></i>
+</button>
+</div>
+</div>
+<!-- Text Extraction Panel for Canvas 2 -->
+<div class="text-extraction-panel mt-4">
+<div class="flex justify-between items-center mb-2">
+<h3 class="text-lg font-medium text-gray-800">Extracted Text</h3>
+<button id="extract-text-2" class="extract-btn px-3 py-1 rounded-md text-sm flex items-center">
+<i class="fas fa-crop-alt mr-1"></i> Extract Text
+</button>
+</div>
+<div id="loading-2" class="loading-indicator">
+<i class="fas fa-spinner fa-spin mr-2"></i> Extracting text...
+</div>
+<div id="error-2" class="error-message"></div>
+<div id="extracted-text-2" class="text-result">No text extracted yet. Upload an image and click "Extract Text".</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Text Comparison Panel -->
+<div class="bg-white rounded-lg shadow-md p-6 mt-6">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-2xl font-bold text-gray-800">Text Comparison</h2>
+<button id="compare-texts" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center">
+<i class="fas fa-balance-scale mr-2"></i> Compare Texts
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div>
+<h3 class="text-lg font-medium text-gray-800 mb-2">Canvas 1 Text</h3>
+<div id="comparison-text-1" class="text-result">No text to compare</div>
+</div>
+<div>
+<h3 class="text-lg font-medium text-gray-800 mb-2">Canvas 2 Text</h3>
+<div id="comparison-text-2" class="text-result">No text to compare</div>
+</div>
+<div>
+<h3 class="text-lg font-medium text-gray-800 mb-2">Similarity</h3>
+<div class="text-center">
+<div id="similarity-percentage" class="text-3xl font-bold text-gray-800">0%</div>
+<div class="similarity-meter mt-2">
+<div id="similarity-fill" class="similarity-fill" style="width: 0%"></div>
+</div>
+<div id="similarity-label" class="mt-2 text-sm text-gray-600">No comparison performed</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-8 bg-white rounded-lg shadow-md p-6">
+<h2 class="text-2xl font-bold text-gray-800 mb-4">How to Use</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="feature-card bg-blue-50 p-4 rounded-lg">
+<div class="text-blue-500 text-2xl mb-2"><i class="fas fa-upload"></i></div>
+<h3 class="font-semibold text-gray-800">Upload Images</h3>
+<p class="text-gray-600">Click "Upload Image" to load your images onto the canvases</p>
+</div>
+<div class="feature-card bg-green-50 p-4 rounded-lg">
+<div class="text-green-500 text-2xl mb-2"><i class="fas fa-pen"></i></div>
+<h3 class="font-semibold text-gray-800">Annotate</h3>
+<p class="text-gray-600">Use brush, shapes, text tools to annotate your images</p>
+</div>
+<div class="feature-card bg-purple-50 p-4 rounded-lg">
+<div class="text-purple-500 text-2xl mb-2"><i class="fas fa-crop-alt"></i></div>
+<h3 class="font-semibold text-gray-800">Extract Text</h3>
+<p class="text-gray-600">Click "Extract Text" to extract text from uploaded images</p>
+</div>
+<div class="feature-card bg-yellow-50 p-4 rounded-lg">
+<div class="text-yellow-500 text-2xl mb-2"><i class="fas fa-balance-scale"></i></div>
+<h3 class="font-semibold text-gray-800">Compare</h3>
+<p class="text-gray-600">Compare extracted text to see similarity percentage</p>
+</div>
+</div>
+<div class="mt-6 p-4 bg-indigo-50 rounded-lg">
+<h3 class="text-lg font-semibold text-indigo-800 mb-2">Keyboard Shortcuts</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+<div class="flex items-center">
+<span class="kbd mr-2">B</span>
+<span>Brush Tool</span>
+</div>
+<div class="flex items-center">
+<span class="kbd mr-2">R</span>
+<span>Rectangle Tool</span>
+</div>
+<div class="flex items-center">
+<span class="kbd mr-2">T</span>
+<span>Text Tool</span>
+</div>
+<div class="flex items-center">
+<span class="kbd mr-2">H</span>
+<span>Highlighter Tool</span>
+</div>
+<div class="flex items-center">
+<span class="kbd mr-2">Ctrl+Z</span>
+<span>Undo</span>
+</div>
+<div class="flex items-center">
+<span class="kbd mr-2">Ctrl+Y</span>
+<span>Redo</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="notification" class="notification"></div>
+<script>
+const state = {
+activeTool: 'brush',
+brushColor: '#3b82f6',
+brushSize: 5,
+fontFamily: 'Arial',
+fontSize: 16,
+zoom: {
+canvas1: 1.0,
+canvas2: 1.0
+},
+extractedTexts: {
+canvas1: '',
+canvas2: ''
+},
+imageFiles: {
+canvas1: null,
+canvas2: null
+},
+historyLimit: 50
+};
+let canvas1, canvas2;
+let activeCanvas = null;
+const history = {
+canvas1: {
+undo: [],
+redo: []
+},
+canvas2: {
+undo: [],
+redo: []
+}
+};
+
+function showNotification(message, type = 'success', duration = 3000) {
+const notification = document.getElementById('notification');
+notification.textContent = message;
+notification.className = 'notification';
+
+if (type === 'error') {
+notification.classList.add('error');
+} else if (type === 'warning') {
+notification.classList.add('warning');
+}
+
+notification.classList.add('show');
+
+setTimeout(() => {
+notification.classList.remove('show');
+}, duration);
+}
+
+function initCanvases() {
+canvas1 = new fabric.Canvas('canvas-1', {
+backgroundColor: '#f8fafc',
+selection: true,
+preserveObjectStacking: true,
+stopContextMenu: true
+});
+
+canvas2 = new fabric.Canvas('canvas-2', {
+backgroundColor: '#f8fafc',
+selection: true,
+preserveObjectStacking: true,
+stopContextMenu: true
+});
+
+activeCanvas = canvas1;
+setActiveCanvas(canvas1);
+
+// Save initial state
+saveState(canvas1);
+saveState(canvas2);
+
+// Set up event listeners for history
+setupCanvasHistory(canvas1);
+setupCanvasHistory(canvas2);
+
+// Set up canvas click to activate
+canvas1.on('mouse:down', () => setActiveCanvas(canvas1));
+canvas2.on('mouse:down', () => setActiveCanvas(canvas2));
+
+// Add right-click context menu prevention
+document.querySelectorAll('.canvas-container').forEach(container => {
+container.addEventListener('contextmenu', e => e.preventDefault());
+});
+}
+
+function setupCanvasHistory(canvas) {
+['path:created', 'object:added', 'object:modified', 'object:removed'].forEach(event => {
+canvas.on(event, () => {
+// Save state only if it's different from the last state
+if (history[canvas === canvas1 ? 'canvas1' : 'canvas2'].undo.length === 0 ||
+JSON.stringify(canvas.toJSON()) !== history[canvas === canvas1 ? 'canvas1' : 'canvas2'].undo[history[canvas === canvas1 ? 'canvas1' : 'canvas2'].undo.length - 1]) {
+saveState(canvas);
+}
+});
+});
+}
+
+function setActiveCanvas(canvas) {
+activeCanvas = canvas;
+// Update UI to show which canvas is active
+document.querySelectorAll('.canvas-container').forEach(container => {
+container.classList.remove('canvas-active');
+});
+if (canvas === canvas1) {
+document.getElementById('canvas-container-1').classList.add('canvas-active');
+} else {
+document.getElementById('canvas-container-2').classList.add('canvas-active');
+}
+}
+
+function saveState(canvas) {
+const canvasData = canvas.toJSON();
+const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
+
+// Save current state to undo stack
+canvasHistory.undo.push(JSON.stringify(canvasData));
+
+// Limit undo stack size
+if (canvasHistory.undo.length > state.historyLimit) {
+canvasHistory.undo.shift();
+}
+
+// Clear redo stack when new action is performed
+canvasHistory.redo = [];
+}
+
+function undo(canvas) {
+const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
+if (canvasHistory.undo.length > 1) {
+// Save current state to redo stack
+const currentState = canvas.toJSON();
+canvasHistory.redo.push(JSON.stringify(currentState));
+
+// Remove current state from undo stack
+canvasHistory.undo.pop();
+
+// Get previous state
+const previousState = JSON.parse(canvasHistory.undo[canvasHistory.undo.length - 1]);
+
+// Load previous state
+canvas.loadFromJSON(previousState, () => {
+canvas.renderAll();
+showNotification('Action undone');
+});
+} else {
+showNotification('Nothing to undo', 'warning');
+}
+}
+
+function redo(canvas) {
+const canvasHistory = canvas === canvas1 ? history.canvas1 : history.canvas2;
+if (canvasHistory.redo.length > 0) {
+// Save current state to undo stack
+const currentState = canvas.toJSON();
+canvasHistory.undo.push(JSON.stringify(currentState));
+
+// Get next state from redo stack
+const nextState = JSON.parse(canvasHistory.redo.pop());
+
+// Load next state
+canvas.loadFromJSON(nextState, () => {
+canvas.renderAll();
+showNotification('Action redone');
+});
+} else {
+showNotification('Nothing to redo', 'warning');
+}
+}
+
+function configureTool(tool) {
+state.activeTool = tool;
+document.querySelectorAll('.tool-btn').forEach(btn => {
+btn.classList.remove('active');
+btn.setAttribute('aria-pressed', 'false');
+});
+document.getElementById(`${tool}-tool`).classList.add('active');
+document.getElementById(`${tool}-tool`).setAttribute('aria-pressed', 'true');
+
+[canvas1, canvas2].forEach(canvas => {
+canvas.isDrawingMode = false;
+canvas.selection = true;
+canvas.forEachObject(obj => {
+obj.set({
+evented: true,
+selectable: true
+});
+});
+
+// Clear any existing event listeners
+canvas.off('mouse:down');
+canvas.off('mouse:move');
+canvas.off('mouse:up');
+
+switch(tool) {
+case 'brush':
+canvas.isDrawingMode = true;
+canvas.selection = false;
+const brush = new fabric.PencilBrush(canvas);
+brush.color = state.brushColor;
+brush.width = state.brushSize;
+canvas.freeDrawingBrush = brush;
+break;
+case 'rectangle':
+setupRectangleTool(canvas);
+break;
+case 'text':
+setupTextTool(canvas);
+break;
+case 'highlighter':
+canvas.isDrawingMode = true;
+canvas.selection = false;
+const highlighter = new fabric.PencilBrush(canvas);
+// Convert hex color to rgba with transparency for highlighter effect
+const r = parseInt(state.brushColor.slice(1, 3), 16);
+const g = parseInt(state.brushColor.slice(3, 5), 16);
+const b = parseInt(state.brushColor.slice(5, 7), 16);
+highlighter.color = `rgba(${r}, ${g}, ${b}, 0.3)`;
+highlighter.width = state.brushSize * 2; // Make highlighter thicker
+canvas.freeDrawingBrush = highlighter;
+break;
+}
+});
+}
+
+function setupRectangleTool(canvas) {
+let isDrawing = false;
+let startX, startY;
+let rect;
+
+canvas.on('mouse:down', (o) => {
+if (o.e.altKey) return; // Prevent rectangle drawing if alt key is pressed
+isDrawing = true;
+const pointer = canvas.getPointer(o.e);
+startX = pointer.x;
+startY = pointer.y;
+
+rect = new fabric.Rect({
+left: startX,
+top: startY,
+width: 0,
+height: 0,
+fill: 'rgba(59, 130, 246, 0.1)',
+stroke: state.brushColor,
+strokeWidth: 2,
+selectable: true,
+transparentCorners: false
+});
+
+canvas.add(rect);
+});
+
+canvas.on('mouse:move', (o) => {
+if (!isDrawing) return;
+const pointer = canvas.getPointer(o.e);
+const width = pointer.x - startX;
+const height = pointer.y - startY;
+
+if (rect) {
+rect.set({
+width: width,
+height: height
+});
+canvas.renderAll();
+}
+});
+
+canvas.on('mouse:up', () => {
+isDrawing = false;
+if (rect) {
+// Ensure minimum size
+if (Math.abs(rect.width) < 5 || Math.abs(rect.height) < 5) {
+canvas.remove(rect);
+} else {
+// Normalize negative dimensions
+if (rect.width < 0) {
+rect.set({
+left: rect.left + rect.width,
+width: -rect.width
+});
+}
+if (rect.height < 0) {
+rect.set({
+top: rect.top + rect.height,
+height: -rect.height
+});
+}
+canvas.renderAll();
+saveState(canvas);
+}
+}
+});
+}
+
+function setupTextTool(canvas) {
+canvas.on('mouse:down', (o) => {
+if (o.e.altKey) return; // Prevent text tool if alt key is pressed
+const pointer = canvas.getPointer(o.e);
+const textbox = new fabric.Textbox('Annotation text', {
+left: pointer.x,
+top: pointer.y,
+width: 200,
+fontSize: state.fontSize,
+fill: state.brushColor,
+editable: true,
+hasControls: true,
+transparentCorners: false,
+cornerColor: '#3b82f6',
+cornerSize: 8,
+padding: 5
+});
+
+canvas.add(textbox);
+textbox.enterEditing();
+textbox.selectAll();
+canvas.setActiveObject(textbox);
+canvas.renderAll();
+saveState(canvas);
+});
+}
+
+function loadImageToCanvas(file, canvas) {
+if (!file) return;
+
+const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+if (!validImageTypes.includes(file.type)) {
+showNotification('Please upload a valid image file (JPEG, PNG, GIF, WebP)', 'error');
+return;
+}
+
+const reader = new FileReader();
+reader.onload = function(event) {
+// Create a new Image object
+const img = new Image();
+img.onload = function() {
+// Calculate scaling to fit canvas while maintaining aspect ratio
+const canvasWidth = canvas.width;
+const canvasHeight = canvas.height;
+const imgWidth = img.width;
+const imgHeight = img.height;
+
+const scale = Math.min(
+canvasWidth / imgWidth,
+canvasHeight / imgHeight
+);
+
+// Create a fabric.Image from the loaded image
+const fabricImage = new fabric.Image(img, {
+left: (canvasWidth - imgWidth * scale) / 2,
+top: (canvasHeight - imgHeight * scale) / 2,
+scaleX: scale,
+scaleY: scale,
+selectable: false,
+hasControls: false,
+hasBorders: false
+});
+
+// Set as background image
+canvas.setBackgroundImage(fabricImage, () => {
+canvas.renderAll();
+saveState(canvas);
+showNotification('Image loaded successfully');
+});
+
+// Reset zoom when new image is loaded
+const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+state.zoom[canvasId] = 1.0;
+updateZoomDisplay(canvas);
+
+// Store the image file for text extraction
+state.imageFiles[canvasId] = file;
+};
+
+img.onerror = function() {
+showNotification('Error loading image. The file may be corrupted.', 'error');
+};
+
+img.src = event.target.result;
+};
+
+reader.onerror = function() {
+showNotification('Error reading file', 'error');
+};
+
+reader.readAsDataURL(file);
+}
+
+function clearCanvasImage(canvas) {
+canvas.setBackgroundImage(null, () => {
+canvas.renderAll();
+saveState(canvas);
+});
+
+// Reset zoom when image is cleared
+const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+state.zoom[canvasId] = 1.0;
+updateZoomDisplay(canvas);
+
+// Clear image file and extracted text
+state.imageFiles[canvasId] = null;
+state.extractedTexts[canvasId] = '';
+
+// Update UI
+const canvasNumber = canvasId === 'canvas1' ? '1' : '2';
+const extractedTextElement = document.getElementById(`extracted-text-${canvasNumber}`);
+const errorElement = document.getElementById(`error-${canvasNumber}`);
+
+extractedTextElement.textContent = 'No text extracted yet. Upload an image and click "Extract Text".';
+errorElement.style.display = 'none';
+errorElement.textContent = '';
+
+// Update comparison if needed
+updateComparisonTexts();
+
+showNotification('Canvas cleared');
+}
+
+function exportCanvas(canvas, canvasNumber) {
+try {
+// Use Fabric's built-in method for better reliability
+const dataURL = canvas.toDataURL({
+format: 'png',
+quality: 1.0
+});
+
+// Create download link
+const link = document.createElement('a');
+link.href = dataURL;
+link.download = `canvas-${canvasNumber}-annotated.png`;
+document.body.appendChild(link);
+link.click();
+document.body.removeChild(link);
+
+showNotification(`Canvas ${canvasNumber} exported successfully`);
+} catch (error) {
+console.error('Error exporting canvas:', error);
+showNotification('Error exporting canvas. Please try again.', 'error');
+}
+}
+
+function resetCanvas(canvas) {
+const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+
+// Clear the canvas
+canvas.clear();
+canvas.backgroundColor = '#f8fafc';
+canvas.renderAll();
+
+// Reset history
+history[canvasId].undo = [];
+history[canvasId].redo = [];
+saveState(canvas);
+
+// Reset zoom
+state.zoom[canvasId] = 1.0;
+updateZoomDisplay(canvas);
+
+// Clear image file and extracted text
+state.imageFiles[canvasId] = null;
+state.extractedTexts[canvasId] = '';
+
+// Update UI
+const extractedTextElement = document.getElementById(`extracted-text-${canvasId === 'canvas1' ? '1' : '2'}`);
+const errorElement = document.getElementById(`error-${canvasId === 'canvas1' ? '1' : '2'}`);
+
+extractedTextElement.textContent = 'No text extracted yet. Upload an image and click "Extract Text".';
+errorElement.style.display = 'none';
+errorElement.textContent = '';
+
+// Update comparison if needed
+updateComparisonTexts();
+
+showNotification('Canvas reset successfully');
+}
+
+// Zoom functions
+function zoomIn(canvas) {
+const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+if (state.zoom[canvasId] < 3.0) { // Limit max zoom to 300%
+state.zoom[canvasId] *= 1.2;
+canvas.setZoom(state.zoom[canvasId]);
+canvas.renderAll();
+updateZoomDisplay(canvas);
+} else {
+showNotification('Maximum zoom level reached', 'warning');
+}
+}
+
+function zoomOut(canvas) {
+const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+if (state.zoom[canvasId] > 0.2) { // Limit min zoom to 20%
+state.zoom[canvasId] /= 1.2;
+canvas.setZoom(state.zoom[canvasId]);
+canvas.renderAll();
+updateZoomDisplay(canvas);
+} else {
+showNotification('Minimum zoom level reached', 'warning');
+}
+}
+
+function resetZoom(canvas) {
+const canvasId = canvas === canvas1 ? 'canvas1' : 'canvas2';
+state.zoom[canvasId] = 1.0;
+canvas.setZoom(1.0);
+canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+canvas.renderAll();
+updateZoomDisplay(canvas);
+}
+
+function updateZoomDisplay(canvas) {
+const canvasId = canvas === canvas1 ? '1' : '2';
+const zoomLevel = Math.round(state.zoom[`canvas${canvasId}`] * 100);
+document.getElementById(`zoom-level-${canvasId}`).textContent = `${zoomLevel}%`;
+}
+
+// Text extraction function using Tesseract.js
+async function extractTextFromImage(file, canvasId) {
+const loadingElement = document.getElementById(`loading-${canvasId === 'canvas1' ? '1' : '2'}`);
+const extractedTextElement = document.getElementById(`extracted-text-${canvasId === 'canvas1' ? '1' : '2'}`);
+const errorElement = document.getElementById(`error-${canvasId === 'canvas1' ? '1' : '2'}`);
+
+// Clear previous error messages
+errorElement.style.display = 'none';
+errorElement.textContent = '';
+
+if (!file) {
+extractedTextElement.textContent = 'No image uploaded. Please upload an image first.';
+return;
+}
+
+// Show loading indicator
+loadingElement.style.display = 'block';
+extractedTextElement.textContent = 'Processing...';
+
+try {
+// Use Tesseract.js to extract text from the image
+const { data: { text } } = await Tesseract.recognize(
+file,
+'eng',
+{ logger: m => console.log(m) }
+);
+
+// Store the extracted text
+state.extractedTexts[canvasId] = text.trim();
+
+// Update the UI
+if (text.trim()) {
+extractedTextElement.textContent = text.trim();
+} else {
+extractedTextElement.textContent = 'No text found in the image.';
+showNotification('No text found in the image', 'warning');
+}
+
+// Update the comparison panel
+updateComparisonTexts();
+} catch (error) {
+console.error('Error extracting text:', error);
+extractedTextElement.textContent = 'Error extracting text. Please try again.';
+errorElement.textContent = `Error: ${error.message || 'Unknown error occurred'}`;
+errorElement.style.display = 'block';
+showNotification('Text extraction failed. Please try again.', 'error');
+} finally {
+// Hide loading indicator
+loadingElement.style.display = 'none';
+}
+}
+
+// Calculate text similarity using more robust algorithm
+function calculateTextSimilarity() {
+const text1 = state.extractedTexts.canvas1;
+const text2 = state.extractedTexts.canvas2;
+
+if (!text1 || !text2) {
+document.getElementById('similarity-percentage').textContent = '0%';
+document.getElementById('similarity-fill').style.width = '0%';
+document.getElementById('similarity-label').textContent = 'Extract text from both canvases first';
+return;
+}
+
+// Clean texts for comparison
+const cleanText = text => {
+return text.toLowerCase()
+.replace(/[^\w\s]/g, '') // Remove punctuation
+.replace(/\s+/g, ' ') // Normalize whitespace
+.trim();
+};
+
+const cleanText1 = cleanText(text1);
+const cleanText2 = cleanText(text2);
+
+if (!cleanText1 || !cleanText2) {
+document.getElementById('similarity-percentage').textContent = '0%';
+document.getElementById('similarity-fill').style.width = '0%';
+document.getElementById('similarity-label').textContent = 'No meaningful text to compare';
+return;
+}
+
+// Use Levenshtein distance for more accurate comparison
+const levenshteinDistance = (a, b) => {
+if (a.length === 0) return b.length;
+if (b.length === 0) return a.length;
+
+const matrix = [];
+
+// Initialize matrix
+for (let i = 0; i <= b.length; i++) {
+matrix[i] = [i];
+}
+
+for (let j = 0; j <= a.length; j++) {
+matrix[0][j] = j;
+}
+
+// Fill matrix
+for (let i = 1; i <= b.length; i++) {
+for (let j = 1; j <= a.length; j++) {
+if (b.charAt(i-1) === a.charAt(j-1)) {
+matrix[i][j] = matrix[i-1][j-1];
+} else {
+matrix[i][j] = Math.min(
+matrix[i-1][j-1] + 1, // substitution
+matrix[i][j-1] + 1, // insertion
+matrix[i-1][j] + 1 // deletion
+);
+}
+}
+}
+
+return matrix[b.length][a.length];
+};
+
+// Calculate similarity percentage
+const distance = levenshteinDistance(cleanText1, cleanText2);
+const maxLength = Math.max(cleanText1.length, cleanText2.length);
+const similarity = 1 - (distance / maxLength);
+const percentage = Math.round(similarity * 100);
+
+// Update UI
+document.getElementById('similarity-percentage').textContent = `${percentage}%`;
+document.getElementById('similarity-fill').style.width = `${percentage}%`;
+
+// Update similarity label with color coding
+let label = '';
+let labelClass = '';
+
+if (percentage >= 80) {
+label = 'Very High Similarity';
+labelClass = 'text-green-700';
+} else if (percentage >= 60) {
+label = 'High Similarity';
+labelClass = 'text-green-600';
+} else if (percentage >= 40) {
+label = 'Medium Similarity';
+labelClass = 'text-yellow-600';
+} else if (percentage >= 20) {
+label = 'Low Similarity';
+labelClass = 'text-orange-600';
+} else {
+label = 'Very Low Similarity';
+labelClass = 'text-red-600';
+}
+
+document.getElementById('similarity-label').textContent = label;
+document.getElementById('similarity-label').className = `mt-2 text-sm ${labelClass}`;
+
+showNotification(`Text similarity calculated: ${percentage}%`);
+}
+
+// Update comparison texts
+function updateComparisonTexts() {
+document.getElementById('comparison-text-1').textContent =
+state.extractedTexts.canvas1 || 'No text extracted from Canvas 1';
+document.getElementById('comparison-text-2').textContent =
+state.extractedTexts.canvas2 || 'No text extracted from Canvas 2';
+}
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+initCanvases();
+
+// Tool selection
+document.getElementById('brush-tool').addEventListener('click', () => configureTool('brush'));
+document.getElementById('rectangle-tool').addEventListener('click', () => configureTool('rectangle'));
+document.getElementById('text-tool').addEventListener('click', () => configureTool('text'));
+document.getElementById('highlighter-tool').addEventListener('click', () => configureTool('highlighter'));
+
+// Color picker
+document.getElementById('color-picker').addEventListener('input', (e) => {
+state.brushColor = e.target.value;
+if (['brush', 'highlighter'].includes(state.activeTool)) {
+configureTool(state.activeTool);
+}
+});
+
+// Brush size
+const brushSize = document.getElementById('brush-size');
+const sizeValue = document.getElementById('size-value');
+brushSize.addEventListener('input', (e) => {
+state.brushSize = parseInt(e.target.value);
+sizeValue.textContent = state.brushSize;
+if (['brush', 'highlighter'].includes(state.activeTool)) {
+configureTool(state.activeTool);
+}
+});
+
+// History controls
+document.getElementById('undo-btn').addEventListener('click', () => {
+undo(activeCanvas);
+});
+
+document.getElementById('redo-btn').addEventListener('click', () => {
+redo(activeCanvas);
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+resetCanvas(activeCanvas);
+});
+
+// Image upload handlers for Canvas 1
+document.getElementById('upload-btn-1').addEventListener('click', () => {
+document.getElementById('file-input-1').click();
+});
+
+document.getElementById('file-input-1').addEventListener('change', (e) => {
+if (e.target.files && e.target.files[0]) {
+loadImageToCanvas(e.target.files[0], canvas1);
+}
+});
+
+// Image upload handlers for Canvas 2
+document.getElementById('upload-btn-2').addEventListener('click', () => {
+document.getElementById('file-input-2').click();
+});
+
+document.getElementById('file-input-2').addEventListener('change', (e) => {
+if (e.target.files && e.target.files[0]) {
+loadImageToCanvas(e.target.files[0], canvas2);
+}
+});
+
+// Clear image handlers
+document.getElementById('clear-image-1').addEventListener('click', () => {
+clearCanvasImage(canvas1);
+});
+
+document.getElementById('clear-image-2').addEventListener('click', () => {
+clearCanvasImage(canvas2);
+});
+
+// Export handlers for each canvas
+document.getElementById('export-btn-1').addEventListener('click', () => {
+exportCanvas(canvas1, 1);
+});
+
+document.getElementById('export-btn-2').addEventListener('click', () => {
+exportCanvas(canvas2, 2);
+});
+
+// Text extraction handlers
+document.getElementById('extract-text-1').addEventListener('click', () => {
+extractTextFromImage(state.imageFiles.canvas1, 'canvas1');
+});
+
+document.getElementById('extract-text-2').addEventListener('click', () => {
+extractTextFromImage(state.imageFiles.canvas2, 'canvas2');
+});
+
+// Text comparison handler
+document.getElementById('compare-texts').addEventListener('click', () => {
+calculateTextSimilarity();
+});
+
+// Zoom controls for canvas 1
+document.getElementById('zoom-in-1').addEventListener('click', () => zoomIn(canvas1));
+document.getElementById('zoom-out-1').addEventListener('click', () => zoomOut(canvas1));
+document.getElementById('reset-zoom-1').addEventListener('click', () => resetZoom(canvas1));
+
+// Zoom controls for canvas 2
+document.getElementById('zoom-in-2').addEventListener('click', () => zoomIn(canvas2));
+document.getElementById('zoom-out-2').addEventListener('click', () => zoomOut(canvas2));
+document.getElementById('reset-zoom-2').addEventListener('click', () => resetZoom(canvas2));
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+// Only process shortcuts if not typing in an input field
+if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+return;
+}
+
+if (e.ctrlKey && e.key === 'z') {
+e.preventDefault();
+undo(activeCanvas);
+} else if (e.ctrlKey && e.key === 'y') {
+e.preventDefault();
+redo(activeCanvas);
+} else if (e.key === 'b' || e.key === 'B') {
+configureTool('brush');
+} else if (e.key === 'r' || e.key === 'R') {
+configureTool('rectangle');
+} else if (e.key === 't' || e.key === 'T') {
+configureTool('text');
+} else if (e.key === 'h' || e.key === 'H') {
+configureTool('highlighter');
+}
+});
+
+// Initialize with brush tool
+configureTool('brush');
+});
+</script></body>
 </html>
