@@ -107,10 +107,6 @@
                         <i class="fas fa-redo mr-2" aria-hidden="true"></i> Redo
                     </button>
                     
-                    <button id="export-btn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center" aria-label="Export Image">
-                        <i class="fas fa-download mr-2" aria-hidden="true"></i> Export
-                    </button>
-                    
                     <button id="reset-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center" aria-label="Reset Canvas">
                         <i class="fas fa-trash mr-2" aria-hidden="true"></i> Reset
                     </button>
@@ -131,6 +127,9 @@
                             </button>
                             <button id="clear-image-1" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
                                 <i class="fas fa-times mr-2"></i> Clear
+                            </button>
+                            <button id="export-btn-1" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center" aria-label="Export Canvas 1">
+                                <i class="fas fa-download mr-2"></i> Export
                             </button>
                         </div>
                     </div>
@@ -164,6 +163,9 @@
                             </button>
                             <button id="clear-image-2" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
                                 <i class="fas fa-times mr-2"></i> Clear
+                            </button>
+                            <button id="export-btn-2" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center" aria-label="Export Canvas 2">
+                                <i class="fas fa-download mr-2"></i> Export
                             </button>
                         </div>
                     </div>
@@ -207,7 +209,7 @@
                 <div class="bg-yellow-50 p-4 rounded-lg">
                     <div class="text-yellow-500 text-2xl mb-2"><i class="fas fa-download"></i></div>
                     <h3 class="font-semibold text-gray-800">Export</h3>
-                    <p class="text-gray-600">Export your annotated images when finished</p>
+                    <p class="text-gray-600">Export each canvas individually using the export buttons</p>
                 </div>
             </div>
         </div>
@@ -532,7 +534,7 @@
             updateZoomDisplay(canvas);
         }
         
-        function exportCanvas(canvas) {
+        function exportCanvas(canvas, canvasNumber) {
             const dataURL = canvas.toDataURL({
                 format: 'png',
                 quality: 0.8
@@ -540,7 +542,7 @@
             
             const link = document.createElement('a');
             link.href = dataURL;
-            link.download = 'annotated-image.png';
+            link.download = `canvas-${canvasNumber}-annotated.png`;
             link.click();
         }
         
@@ -626,10 +628,6 @@
                 redo(activeCanvas);
             });
             
-            document.getElementById('export-btn').addEventListener('click', () => {
-                exportCanvas(activeCanvas);
-            });
-            
             document.getElementById('reset-btn').addEventListener('click', () => {
                 resetCanvas(activeCanvas);
             });
@@ -663,6 +661,15 @@
             
             document.getElementById('clear-image-2').addEventListener('click', () => {
                 clearCanvasImage(canvas2);
+            });
+            
+            // Export handlers for each canvas
+            document.getElementById('export-btn-1').addEventListener('click', () => {
+                exportCanvas(canvas1, 1);
+            });
+            
+            document.getElementById('export-btn-2').addEventListener('click', () => {
+                exportCanvas(canvas2, 2);
             });
             
             // Zoom controls for canvas 1
