@@ -1,6 +1,237 @@
-body{
-  padding: 25px;
+.tool-btn.active {
+background-color: #3b82f6;
+color: white;
+box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 }
-.title {
-	color: #5C6AC4;
+.tool-btn:hover {
+background-color: #2563eb;
+color: white;
+}
+.tool-btn:focus {
+outline: 2px solid #2563eb;
+}
+.canvas-container {
+border: 1px solid #e2e8f0;
+border-radius: 0.5rem;
+overflow: hidden;
+position: relative;
+transition: all 0.2s ease;
+}
+.canvas-container:hover {
+border-color: #94a3b8;
+}
+.canvas-active {
+border-color: #3b82f6;
+box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+.canvas-selection-mode {
+border-color: #10b981;
+box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
+}
+.zoom-controls {
+position: absolute;
+bottom: 10px;
+right: 10px;
+display: flex;
+gap: 5px;
+background: rgba(255, 255, 255, 0.85);
+padding: 5px;
+border-radius: 4px;
+z-index: 10;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+backdrop-filter: blur(2px);
+}
+.zoom-btn {
+width: 32px;
+height: 32px;
+display: flex;
+align-items: center;
+justify-content: center;
+border-radius: 4px;
+background-color: #f3f4f6;
+cursor: pointer;
+transition: all 0.2s;
+border: 1px solid #e2e8f0;
+}
+.zoom-btn:hover {
+background-color: #e5e7eb;
+transform: scale(1.05);
+}
+.zoom-btn:active {
+transform: scale(0.95);
+}
+.zoom-level {
+display: flex;
+align-items: center;
+padding: 0 8px;
+font-size: 14px;
+min-width: 50px;
+justify-content: center;
+font-weight: 500;
+color: #4b5563;
+}
+.text-extraction-panel {
+background-color: #f9fafb;
+border-radius: 0.5rem;
+padding: 1rem;
+margin-top: 1rem;
+border: 1px solid #e2e8f0;
+}
+.text-result {
+background-color: white;
+border: 1px solid #e5e7eb;
+border-radius: 0.375rem;
+padding: 0.75rem;
+min-height: 100px;
+max-height: 200px;
+overflow-y: auto;
+font-family: monospace;
+font-size: 0.875rem;
+line-height: 1.5;
+word-break: break-word;
+}
+.similarity-meter {
+height: 24px;
+background-color: #e5e7eb;
+border-radius: 12px;
+overflow: hidden;
+margin-top: 0.5rem;
+}
+.similarity-fill {
+height: 100%;
+background: linear-gradient(90deg, #10b981, #059669);
+transition: width 0.5s ease;
+}
+.extract-btn {
+background-color: #8b5cf6;
+color: white;
+}
+.extract-btn:hover {
+background-color: #7c3aed;
+}
+.selection-btn {
+background-color: #10b981;
+}
+.selection-btn:hover {
+background-color: #0d9488;
+}
+.loading-indicator {
+display: none;
+text-align: center;
+padding: 10px;
+color: #8b5cf6;
+font-weight: 500;
+}
+.error-message {
+display: none;
+color: #ef4444;
+padding: 8px;
+background-color: #fee2e2;
+border-radius: 0.375rem;
+margin-top: 8px;
+font-size: 0.875rem;
+}
+.tool-btn i {
+transition: transform 0.2s;
+}
+.tool-btn:hover i {
+transform: scale(1.1);
+}
+.canvas-container::after {
+content: '';
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+pointer-events: none;
+border-radius: 0.5rem;
+transition: all 0.2s;
+}
+.canvas-active::after {
+box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+.feature-card {
+transition: all 0.3s ease;
+}
+.feature-card:hover {
+transform: translateY(-3px);
+box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+.notification {
+position: fixed;
+top: 20px;
+right: 20px;
+padding: 12px 20px;
+border-radius: 6px;
+background-color: #10b981;
+color: white;
+font-weight: 500;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+z-index: 1000;
+opacity: 0;
+transform: translateY(-20px);
+transition: all 0.3s ease;
+}
+.notification.show {
+opacity: 1;
+transform: translateY(0);
+}
+.notification.error {
+background-color: #ef4444;
+}
+.notification.warning {
+background-color: #f59e0b;
+}
+.tooltip {
+position: relative;
+display: inline-block;
+}
+.tooltip .tooltip-text {
+visibility: hidden;
+width: 120px;
+background-color: #374151;
+color: #fff;
+text-align: center;
+border-radius: 4px;
+padding: 5px;
+position: absolute;
+z-index: 1;
+bottom: 125%;
+left: 50%;
+margin-left: -60px;
+opacity: 0;
+transition: opacity 0.3s;
+font-size: 0.75rem;
+}
+.tooltip:hover .tooltip-text {
+visibility: visible;
+opacity: 1;
+}
+.kbd {
+display: inline-block;
+padding: 0.15em 0.4em;
+border: 1px solid #e2e8f0;
+border-radius: 0.25em;
+background-color: #f8fafc;
+font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+font-size: 0.85em;
+color: #4b5563;
+}
+.selection-rectangle {
+border: 2px dashed #10b981;
+background-color: rgba(16, 185, 129, 0.1);
+}
+
+.keyboard-shortcuts {
+position: fixed;
+left: 20px;
+bottom: 20px;
+width: 250px;
+background-color: #f8fafc;
+border: 1px solid #e2e8f0;
+border-radius: 0.5rem;
+padding: 1rem;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+z-index: 1000;
 }
