@@ -235,10 +235,3 @@ padding: 1rem;
 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 z-index: 1000;
 }
-
-#header-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  display: inline-block;
-}
