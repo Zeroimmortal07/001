@@ -76,9 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input-1').addEventListener('change', (e) => {
     if (e.target.files && e.target.files[0]) {
       loadImageToCanvas(e.target.files[0], canvas1);
-      setTimeout(() => {
-        document.getElementById('file-input-2').click();
-      }, 500);
     }
   });
 
